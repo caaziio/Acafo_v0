@@ -472,8 +472,8 @@ def auth_magic_link():
         session['remember_me'] = remember_me
         
         supabase = get_supabase_client()
-        # Use dynamic redirect URL based on environment
-        redirect_url = f"{settings.SITE_URL}/supabase_redirect.html"
+        # Use the magic link verification route directly
+        redirect_url = f"{settings.SITE_URL}/auth/magic-link-verify"
         result = supabase.auth_sign_in_with_otp(email, redirect_url)
         
         if result["success"]:
@@ -492,21 +492,77 @@ def supabase_redirect():
     """Serve the Supabase redirect page for magic links."""
     return send_from_directory('.', 'supabase_redirect.html')
 
+@app.route("/auth/magic-link-verify")
+def magic_link_verify():
+    """Handle magic link verification directly."""
+    try:
+        # Get token from URL parameters
+        token = request.args.get('token') or request.args.get('access_token')
+        email = request.args.get('email')
+        
+        print(f"Magic link verification - Token: {token}, Email: {email}")
+        
+        if not token:
+            flash("Invalid magic link: No token found.", "error")
+            return redirect(url_for('login'))
+        
+        # Verify the token with Supabase
+        supabase = get_supabase_client()
+        
+        # Try to get user info directly from token
+        user = supabase.auth_get_user(token)
+        
+        if user:
+            # Store user info in session
+            session['user_id'] = user.get('id') or user.get('sub')
+            session['user_email'] = user.get('email')
+            session['access_token'] = token
+            
+            # Set persistent session
+            remember_me = session.pop('remember_me', True)
+            session.permanent = remember_me
+            
+            print(f"Magic link user authenticated: {session['user_id']}")
+            flash("Successfully signed in with magic link!", "success")
+            return redirect(url_for('dashboard'))
+        else:
+            flash("Magic link verification failed. Please try again.", "error")
+            return redirect(url_for('login'))
+            
+    except Exception as e:
+        print(f"Magic link verification error: {str(e)}")
+        flash(f"Authentication error: {str(e)}", "error")
+        return redirect(url_for('login'))
+
 @app.route("/auth/callback")
 def auth_callback():
     """Handle authentication callback from Supabase."""
     try:
+        # Debug: Log all query parameters and args
+        print(f"Auth callback called with args: {dict(request.args)}")
+        print(f"Request URL: {request.url}")
+        
         # Get the access token from the URL fragment or query params
         access_token = request.args.get('access_token') or request.args.get('token')
+        
+        # For magic links, Supabase might send the token in different formats
+        # Check for various possible token parameters
+        if not access_token:
+            access_token = request.args.get('access_token') or request.args.get('token') or request.args.get('auth_token')
+        
+        print(f"Extracted access_token: {access_token}")
         
         # If no token in query params, check if this is a fragment-based redirect
         if not access_token:
             # This might be a fragment-based redirect, redirect to a JavaScript handler
+            print("No token found, rendering auth_callback.html")
             return render_template("auth_callback.html")
         
         # Get user information from Supabase
         supabase = get_supabase_client()
         user = supabase.auth_get_user(access_token)
+        
+        print(f"Supabase user response: {user}")
         
         if user:
             # Store user info in session
@@ -515,17 +571,19 @@ def auth_callback():
             session['access_token'] = access_token
             
             # Check if user wants persistent session (from magic link form)
-            # For Google OAuth, default to persistent since it's more secure
             remember_me = session.pop('remember_me', True)
             session.permanent = remember_me
             
+            print(f"User authenticated successfully: {session['user_id']}")
             flash("Successfully signed in!", "success")
             return redirect(url_for('dashboard'))
         else:
+            print("Failed to get user from Supabase")
             flash("Authentication failed: Could not verify user.", "error")
             return redirect(url_for('login'))
             
     except Exception as e:
+        print(f"Auth callback error: {str(e)}")
         flash(f"Authentication error: {str(e)}", "error")
         return redirect(url_for('login'))
 

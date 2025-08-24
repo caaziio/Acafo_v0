@@ -65,6 +65,26 @@ class SupabaseClient:
         except Exception as e:
             return {"success": False, "error": str(e)}
     
+    def verify_otp(self, email: str, token: str) -> Dict[str, Any]:
+        """Verify OTP token from magic link."""
+        try:
+            verify_url = f"{self.base_url}/verify"
+            data = {
+                "email": email,
+                "token": token,
+                "type": "magiclink"
+            }
+            
+            response = httpx.post(verify_url, json=data, headers=self.headers)
+            
+            if response.status_code == 200:
+                return {"success": True, "data": response.json()}
+            else:
+                return {"success": False, "error": f"HTTP {response.status_code}: {response.text}"}
+                
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    
     def auth_get_user(self, access_token: str) -> Optional[Dict[str, Any]]:
         """Get user information from access token."""
         try:
