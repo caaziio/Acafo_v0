@@ -1,0 +1,31 @@
+# Render Production Environment Configuration
+# Add these environment variables in your Render dashboard
+
+# Environment
+ENVIRONMENT=production
+
+# Flask
+APP_SECRET_KEY=your-super-secure-production-secret-key-here-make-it-long-and-random
+SESSION_TYPE=filesystem
+
+# Supabase
+SUPABASE_URL=https://your-project-id.supabase.co
+SUPABASE_ANON_KEY=your-anon-key-from-supabase-dashboard
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-from-supabase-dashboard
+
+# Site URL (your Render domain)
+SITE_URL=https://acafo-v0.onrender.com
+
+# OpenAI
+OPENAI_API_KEY=your-openai-api-key
+
+# Google Sheets (if using)
+GOOGLE_SHEET_URL=your-google-sheet-url
+GOOGLE_CREDENTIALS_PATH=path/to/your/credentials.json
+
+# Rate Limiting
+RATE_LIMIT_DEFAULT=100 per minute
+RATE_LIMIT_AI=10 per minute
+
+# Logging
+LOGS_DIR=logs

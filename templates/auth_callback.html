@@ -30,19 +30,20 @@
         const tokenType = params.get('token_type');
         
         if (accessToken && tokenType === 'bearer') {
-                    // Always redirect to localhost:3000 (our Flask app) with token as query parameter
-        const callbackUrl = 'http://localhost:3000/auth/callback';
+            // Get the current domain dynamically
+            const currentDomain = window.location.origin;
+            const callbackUrl = `${currentDomain}/auth/callback`;
             const finalUrl = `${callbackUrl}?access_token=${encodeURIComponent(accessToken)}&token_type=${encodeURIComponent(tokenType)}`;
             
             // Redirect to the callback with the token
             window.location.href = finalUrl;
         } else {
             // No valid token found, redirect to login
-            window.location.href = 'http://localhost:3000/login';
+            window.location.href = `${window.location.origin}/login`;
         }
     } else {
         // No hash fragment, redirect to login
-        window.location.href = 'http://localhost:3000/login';
+        window.location.href = `${window.location.origin}/login`;
     }
 })();
 </script>
