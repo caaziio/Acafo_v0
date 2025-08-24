@@ -1,0 +1,635 @@
+{% extends "layout.html" %}
+{% block title %}Add Experience{% endblock %}
+{% block page_title %}Generate Bullet Points{% endblock %}
+{% block content %}
+
+<style>
+/* === Acafo: red-box refresh === */
+.input-card { background:#fff; border:1px solid rgba(0,0,0,.08); border-radius:16px; padding:16px; }
+.field { margin-bottom:16px; }
+.field label { display:block; font-weight:700; margin:0 0 8px; color:#0b1020; }
+
+.select-wrap, .textarea-wrap {
+  border:1px solid #2563eb;
+  border-radius:14px;
+  background:#fff;
+  padding:10px 12px;
+  transition: all .2s ease;
+}
+.select-wrap:focus-within, .textarea-wrap:focus-within {
+  border-color: #1e40af;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+.select-wrap select { width:100%; border:0; outline:0; font-size:15px; background:#fff; color:#0b1020; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial; }
+
+.mic-submit-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-top: 1rem;
+  padding: 1.5rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.05);
+}
+
+.mic-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.mic-btn {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: none;
+  background-color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+.mic-btn.recording {
+  background-color: #dc2626;
+}
+.mic-pulse {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow: 0 0 0 rgba(37, 99, 235, 0.4);
+  animation: pulseBlue 1.5s infinite;
+}
+.mic-btn.recording .mic-pulse {
+  animation: pulseRed 1.5s infinite;
+}
+@keyframes pulseBlue {
+  0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+  70% { box-shadow: 0 0 0 20px rgba(37, 99, 235, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+}
+@keyframes pulseRed {
+  0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.4); }
+  70% { box-shadow: 0 0 0 20px rgba(220, 38, 38, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+}
+.mic-label {
+  margin-top: 0.5rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+.mic-timer {
+  font-size:13px; color:#6b7280; margin-top:8px;
+  font-weight: 500;
+}
+
+.submit-btn-modern {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+  font-weight: 600;
+  font-size: 16px;
+  padding: 16px 32px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 200px;
+  justify-content: center;
+}
+
+.submit-btn-modern:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 24px rgba(37, 99, 235, 0.4);
+  background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+}
+
+.submit-btn-modern:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2) !important;
+  background: #9ca3af !important;
+}
+
+.textarea-wrap textarea {
+  width:100%; min-height:180px; border:0; outline:0; resize:vertical;
+  font-size:15px; line-height:1.6; color:#0b1020;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+}
+.textarea-wrap textarea::placeholder {
+  color:#777; font-style:italic; font-size:15px;
+}
+
+.tip {
+  background:#eaf8ea;
+  border:1px solid rgba(34,197,94,.15);
+  border-radius:8px; padding:20px;
+  margin-top: 20px;
+}
+.tip-head { 
+  display:flex; align-items:center; gap:12px; margin-bottom:16px;
+  font-size: 16px;
+  font-weight: 700;
+  color:#0b1020;
+}
+.tip ol { 
+  margin:0; padding-left:20px; color:#374151;
+  font-size: 14px;
+  line-height: 1.6;
+}
+.tip li { 
+  margin:12px 0;
+  padding-left: 4px;
+}
+
+.countline { display:flex; justify-content:space-between; color:#6b7280; font-size:12.5px; margin-top:6px; }
+</style>
+
+<section class="hero">
+  <div>
+    <h2>Tell Us About Your Experience</h2>
+    <p>We'll help you turn it into powerful resume bullet points</p>
+  </div>
+  <button class="cta" onclick="document.getElementById('experienceForm').submit()">🚀 Generate Bullets</button>
+</section>
+
+<section class="card">
+  {% if error %}
+    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <p class="text-red-700 font-medium">{{ error }}</p>
+    </div>
+  {% endif %}
+
+  <form id="experienceForm" method="POST" action="/api/experience/init">
+    <div class="input-card" id="experience-input-card">
+      <!-- Select -->
+      <div class="field">
+        <label for="type">Select the type of experience</label>
+        <div class="select-wrap">
+          <select id="type" name="experience_type" required>
+            <option value="" {% if not prev_type %}selected{% endif %} disabled>Choose an experience type...</option>
+            <option value="work_achievement" {% if prev_type == "work_achievement" %}selected{% endif %}>Work achievement</option>
+            <option value="academic_project" {% if prev_type == "academic_project" %}selected{% endif %}>Academic project</option>
+            <option value="volunteer_community" {% if prev_type == "volunteer_community" %}selected{% endif %}>Volunteer or community work</option>
+            <option value="personal_challenge" {% if prev_type == "personal_challenge" %}selected{% endif %}>Personal challenge you overcame</option>
+            <option value="hobby" {% if prev_type == "hobby" %}selected{% endif %}>Hobby</option>
+            <option value="other" {% if prev_type == "other" %}selected{% endif %}>Other</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Experience Description -->
+      <div class="field">
+        <label for="story">Describe the experience</label>
+        
+        <!-- Textarea -->
+        <div class="textarea-wrap">
+          <textarea id="story" name="experience_text" minlength="80" maxlength="2000"
+            placeholder="Write freely — we'll help shape it into bullet points.">{% if prev_text %}{{ prev_text | e }}{% endif %}</textarea>
+        </div>
+        <div class="countline">
+          <span id="counterLeft">0 / 2000 characters</span>
+          <span>Target: 200–300 words for best results</span>
+        </div>
+
+        <!-- Voice Input & Submit Section -->
+        <div class="mic-submit-container">
+          <div class="mic-container">
+            <button id="micBtn" class="mic-btn" type="button" aria-pressed="false">
+              <div class="mic-pulse"></div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="white" viewBox="0 0 24 24">
+                <path d="M12 14a3 3 0 0 0 3-3V5a3 3 0 1 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 14 0h-2z"/>
+                <path d="M12 17v4m0 0h4m-4 0H8"/>
+              </svg>
+            </button>
+            <div id="micLabel" class="mic-label">Voice Input</div>
+            <div class="mic-timer" id="recTimer" aria-live="polite"></div>
+          </div>
+          
+          <button 
+            type="submit" 
+            id="submitBtn"
+            class="submit-btn-modern">
+            <span id="submitBtnText">🚀 Generate Bullet Points</span>
+            <span id="submitBtnLoading" class="hidden">⏳ Processing...</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Helpful Tips Card -->
+      <div class="tip" id="helperTip">
+        <div class="tip-head">
+          💡 Helpful Tips
+        </div>
+        <ol>
+          <li>Where and when did this happen? Who was involved?</li>
+          <li>What exactly did you do? How did you do it?</li>
+          <li>What was the outcome? What did you learn?</li>
+          <li>What skills did you use or develop?</li>
+        </ol>
+      </div>
+    </div>
+
+
+  </form>
+</section>
+
+  <script>
+    const form = document.getElementById('experienceForm');
+    const textarea = document.getElementById('story'); // Updated to match new ID
+    const submitBtn = document.getElementById('submitBtn');
+    const typeSelect = document.getElementById('type'); // Updated to match new ID
+    
+    // Voice recording variables  
+    let isRecording = false;
+    let recordingTimeout = null;
+    let countdownInterval = null;
+    let elapsedTime = 0;
+    let recognition = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let lastTranscript = '';
+
+    // Check if Web Speech API is supported
+    const isSpeechRecognitionSupported = 'SpeechRecognition' in window || 'webkitSpeechRecognition' in window;
+
+    // Deduplication function to collapse repeated phrases
+    function dedupeRepeats(text) {
+      if (!text) return '';
+      
+      // Lowercase and trim
+      let cleaned = text.toLowerCase().trim();
+      
+      // Collapse multiple spaces
+      cleaned = cleaned.replace(/\s+/g, ' ');
+      
+      // Split into words
+      const words = cleaned.split(' ');
+      
+      // Remove immediate repeated n-grams (n=2..4)
+      const dedupedWords = [];
+      for (let i = 0; i < words.length; i++) {
+        let shouldSkip = false;
+        
+        // Check for repeated 2-grams
+        if (i >= 1) {
+          const bigram = words.slice(i, i + 2).join(' ');
+          const prevBigram = words.slice(i - 1, i + 1).join(' ');
+          if (bigram === prevBigram) {
+            shouldSkip = true;
+          }
+        }
+        
+        // Check for repeated 3-grams
+        if (i >= 2) {
+          const trigram = words.slice(i, i + 3).join(' ');
+          const prevTrigram = words.slice(i - 2, i + 1).join(' ');
+          if (trigram === prevTrigram) {
+            shouldSkip = true;
+          }
+        }
+        
+        // Check for repeated 4-grams
+        if (i >= 3) {
+          const fourgram = words.slice(i, i + 4).join(' ');
+          const prevFourgram = words.slice(i - 3, i + 1).join(' ');
+          if (fourgram === prevFourgram) {
+            shouldSkip = true;
+          }
+        }
+        
+        // As a safety, collapse >2 identical adjacent words to one
+        if (i >= 2 && words[i] === words[i-1] && words[i] === words[i-2]) {
+          shouldSkip = true;
+        }
+        
+        if (!shouldSkip) {
+          dedupedWords.push(words[i]);
+        }
+      }
+      
+      // Reconstruct text with original casing (title case for first letter)
+      const result = dedupedWords.join(' ');
+      if (result.length > 0) {
+        return result.charAt(0).toUpperCase() + result.slice(1);
+      }
+      return result;
+    }
+
+    function updateSubmitButton() {
+      const typeSelected = typeSelect.value;
+      const textLength = textarea.value.length;
+      const isValid = typeSelected && textLength >= 80 && textLength <= 2000;
+      
+      submitBtn.disabled = !isValid;
+      // The disabled styling is handled by CSS :disabled pseudo-class
+    }
+
+    function appendToTextarea(text) {
+      if (!text || text === lastTranscript) return; // Avoid duplicates
+      
+      const currentText = textarea.value;
+      const separator = currentText && !currentText.endsWith(' ') && !currentText.endsWith('\n') ? ' ' : '';
+      textarea.value = currentText + separator + text;
+      lastTranscript = text; // Track last transcript
+      updateSubmitButton();
+      
+      // Scroll to bottom of textarea
+      textarea.scrollTop = textarea.scrollHeight;
+    }
+
+    function startWebSpeechRecording() {
+      try {
+        recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.maxAlternatives = 1;
+        recognition.lang = navigator.language || 'en-US';
+        
+        recognition.onstart = () => {
+          // Call UI function
+          if (window.AcafoMicUI) window.AcafoMicUI.start();
+        };
+        
+        recognition.onresult = (event) => {
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              const dedupedTranscript = dedupeRepeats(transcript);
+              appendToTextarea(dedupedTranscript);
+            }
+          }
+        };
+        
+        recognition.onend = () => {
+          if (isRecording) {
+            try {
+              recognition.start();
+            } catch (error) {
+              console.log('Recognition restarted');
+            }
+          }
+        };
+        
+        recognition.onerror = (event) => {
+          console.error('Speech recognition error:', event.error);
+          if (event.error === 'not-allowed') {
+            alert('Microphone permission denied. Please allow microphone access and try again.');
+          } else if (event.error === 'no-speech') {
+            if (isRecording) {
+              try {
+                recognition.start();
+              } catch (error) {
+                console.log('Recognition restarted after no-speech');
+              }
+            }
+          } else {
+            alert('Speech recognition error: ' + event.error);
+            stopRecording();
+          }
+        };
+        
+        recognition.start();
+        
+        if (recordingTimeout) clearTimeout(recordingTimeout);
+        recordingTimeout = setTimeout(() => {
+          stopRecording();
+        }, 60000);
+        
+      } catch (error) {
+        console.error('Speech recognition not supported:', error);
+        startMediaRecorderRecording();
+      }
+    }
+
+    function startMediaRecorderRecording() {
+      navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+          mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'audio/webm;codecs=opus'
+          });
+          
+          audioChunks = [];
+          
+          mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+          };
+          
+          mediaRecorder.onstop = async () => {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+            
+            stream.getTracks().forEach(track => track.stop());
+            
+            try {
+              const formData = new FormData();
+              formData.append('audio', audioBlob, 'recording.webm');
+              
+              const response = await fetch('/api/transcribe', {
+                method: 'POST',
+                body: formData
+              });
+              
+              const result = await response.json();
+              
+              if (result.text) {
+                const dedupedText = dedupeRepeats(result.text);
+                appendToTextarea(dedupedText);
+              } else {
+                alert('Transcription failed: ' + (result.error || 'Unknown error'));
+              }
+              
+              if (isRecording) {
+                audioChunks = [];
+                mediaRecorder.start();
+              }
+            } catch (error) {
+              console.error('Transcription error:', error);
+              alert('Failed to transcribe audio. Please try again.');
+              
+              if (isRecording) {
+                audioChunks = [];
+                mediaRecorder.start();
+              }
+            }
+          };
+          
+          mediaRecorder.onerror = (event) => {
+            console.error('MediaRecorder error:', event);
+            alert('Recording error occurred. Please try again.');
+            stream.getTracks().forEach(track => track.stop());
+            stopRecording();
+          };
+          
+          mediaRecorder.start();
+          if (window.AcafoMicUI) window.AcafoMicUI.start();
+          
+          if (recordingTimeout) clearTimeout(recordingTimeout);
+          recordingTimeout = setTimeout(() => {
+            stopRecording();
+          }, 60000);
+          
+        })
+        .catch(error => {
+          console.error('Microphone access error:', error);
+          if (error.name === 'NotAllowedError') {
+            alert('Microphone permission denied. Please allow microphone access and try again.');
+          } else {
+            alert('Failed to access microphone: ' + error.message);
+          }
+        });
+    }
+
+    function stopRecording() {
+      if (!isRecording) return;
+      
+      isRecording = false;
+      if (window.AcafoMicUI) window.AcafoMicUI.stop();
+      
+      if (recordingTimeout) {
+        clearTimeout(recordingTimeout);
+        recordingTimeout = null;
+      }
+      
+      if (isSpeechRecognitionSupported && recognition) {
+        recognition.stop();
+      } else if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+      }
+      
+      lastTranscript = '';
+    }
+
+    // Event listeners
+    textarea.addEventListener('input', function() {
+      updateSubmitButton();
+      // Also update character counter
+      const len = textarea.value.length;
+      const counterLeft = document.getElementById('counterLeft');
+      if (counterLeft) {
+        counterLeft.textContent = `${len} / 2000 characters`;
+      }
+    });
+    typeSelect.addEventListener('change', updateSubmitButton);
+    
+    // Initialize
+    updateSubmitButton();
+    // Initialize character counter
+    const len = textarea.value.length;
+    const counterLeft = document.getElementById('counterLeft');
+    if (counterLeft) {
+      counterLeft.textContent = `${len} / 2000 characters`;
+    }
+    
+    // Form submission handling
+    form.addEventListener('submit', function(e) {
+      e.preventDefault();
+      
+      const formData = {
+        experience_type: typeSelect.value,
+        experience_text: textarea.value
+      };
+      
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Processing...';
+      
+      fetch('/api/experience/init', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData)
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          window.location.href = data.redirect_url || '/experience/followup';
+        } else {
+          alert(data.error || 'An error occurred. Please try again.');
+          submitBtn.disabled = false;
+          submitBtn.textContent = '🚀 Generate Bullet Points';
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred. Please try again.');
+        submitBtn.disabled = false;
+        submitBtn.textContent = '🚀 Generate Bullet Points';
+      });
+    });
+  </script>
+
+<script>
+(function(){
+  const story = document.getElementById('story');
+  const micBtn = document.getElementById('micBtn');
+  const timerEl = document.getElementById('recTimer');
+  const counterLeft = document.getElementById('counterLeft');
+
+  const MAX = 2000;
+  let tHandle = null, timeLeft = 60, recording = false;
+
+  function fmt(n){ return `00:${String(n).padStart(2,'0')}`; }
+  function updateCounter(){
+    const len = (story?.value || '').length;
+    counterLeft.textContent = `${len} / ${MAX} characters`;
+  }
+
+  function startMicUI(){
+    if(recording) return;
+    recording = true;
+    isRecording = true; // Sync with existing variable
+    micBtn.classList.add('recording');
+    micBtn.setAttribute('aria-pressed','true');
+    micBtn.disabled = false; // keep clickable to stop
+    document.getElementById('micLabel').textContent = 'Stop Recording';
+    timeLeft = 60; timerEl.textContent = fmt(timeLeft);
+    tHandle = setInterval(()=>{
+      timeLeft -= 1;
+      timerEl.textContent = fmt(Math.max(0,timeLeft));
+      if(timeLeft <= 0){ stopMicUI(); }
+    },1000);
+  }
+  function stopMicUI(){
+    if(!recording) return;
+    recording = false;
+    isRecording = false; // Sync with existing variable
+    micBtn.classList.remove('recording');
+    micBtn.setAttribute('aria-pressed','false');
+    document.getElementById('micLabel').textContent = 'Voice Input';
+    if(tHandle) clearInterval(tHandle);
+    tHandle = null; timerEl.textContent = '';
+  }
+
+  // Hook into existing recording system
+  micBtn?.addEventListener('click', ()=>{
+    if(!recording){ 
+      startMicUI(); 
+      // Start actual recording
+      if (isSpeechRecognitionSupported) {
+        startWebSpeechRecording();
+      } else {
+        startMediaRecorderRecording();
+      }
+    } else { 
+      stopMicUI(); 
+      stopRecording();
+    }
+  });
+
+  // Character counter is now handled in main script
+  // updateCounter(); // Removed to avoid conflicts
+
+  // Expose so existing recorder can call them:
+  window.AcafoMicUI = { start: startMicUI, stop: stopMicUI };
+})();
+</script>
+{% endblock %}

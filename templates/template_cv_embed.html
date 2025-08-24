@@ -1,0 +1,10 @@
+<script>
+  // Force hash routing for React app before loading JS
+  if (!window.location.hash || window.location.hash === "#") {
+    window.location.hash = "#/";
+    window.location.reload();
+  }
+</script>
+<div id="root"></div>
+<link rel="stylesheet" href="{{ url_for('static', filename='template-cv/assets/index-DtVWhv_8.css') }}">
+<script type="module" src="{{ url_for('static', filename='template-cv/assets/index-DOdF6Ga8.js') }}"></script>

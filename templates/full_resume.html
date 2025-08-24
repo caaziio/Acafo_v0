@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% block title %}Your Full Resume{% endblock %}
+{% block content %}
+
+  <div class="bg-white p-6 rounded-xl shadow-md">
+    <h1 class="text-3xl font-bold mb-6">🎓 Your Full Resume</h1>
+
+    {% for item in all_experiences %}
+      <div class="mb-8 pb-4 border-b border-gray-200">
+        <h2 class="text-xl font-semibold mb-2">🔹 {{ item.title.replace('**', '') }}</h2>
+        <p class="text-gray-800 mb-4"><strong>Story:</strong> {{ item.story }}</p>
+        {% if item.start_date or item.end_date %}
+          <p class="text-gray-600 mb-2 text-sm">
+            <strong>Dates:</strong>
+            {% if item.start_date %}{{ item.start_date }}{% else %}N/A{% endif %}
+            –
+            {% if item.end_date %}{{ item.end_date }}{% else %}N/A{% endif %}
+          </p>
+        {% endif %}
+
+        <h3 class="font-semibold mb-2">Resume Bullet Points:</h3>
+        <ul class="list-disc list-inside text-sm text-gray-800">
+          {% if item.final_bullets %}
+            {% for bullet in item.final_bullets %}
+              <li>{{ bullet.replace('**', '') }}</li>
+            {% endfor %}
+          {% elif item.bullet_points %}
+            {% if item.bullet_points is string %}
+              {% for line in item.bullet_points.split('\n') %}
+                {% set clean_line = line.replace('**', '') %}
+                {% if clean_line.strip() != '' %}
+                  <li>{{ clean_line }}</li>
+                {% endif %}
+              {% endfor %}
+            {% else %}
+              {% for bullet in item.bullet_points %}
+                <li>{{ bullet.replace('**', '') }}</li>
+              {% endfor %}
+            {% endif %}
+          {% else %}
+            <li class="text-gray-500 italic">No bullet points available</li>
+          {% endif %}
+        </ul>
+
+        <h3 class="font-semibold mt-4 mb-2">Skills:</h3>
+        <ul class="list-disc list-inside text-sm text-gray-800">
+          {% if item.skills %}
+            {% if item.skills is string %}
+              {% for skill in item.skills.split('\n') if skill.strip() != '' %}
+                <li>{{ skill.strip().replace('-', '').strip() }}</li>
+              {% endfor %}
+            {% else %}
+              {% for skill in item.skills %}
+                <li>{{ skill }}</li>
+              {% endfor %}
+            {% endif %}
+          {% else %}
+            <li class="text-gray-500 italic">No skills identified</li>
+          {% endif %}
+        </ul>
+      </div>
+    {% endfor %}
+
+  </div>
+
+{% endblock %}

@@ -1,0 +1,799 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Acafo • Dashboard</title>
+<style>
+  :root {
+    --bg: #0b1020;               /* Deep navy canvas */
+    --text: #1f2a44;            /* Darker text for contrast on white */
+    --muted: #6b7280;           /* Softer gray for secondary text */
+    --border: rgba(0,0,0,.1);   /* Subtle border for white background */
+    --brand: #2563eb;           /* Vibrant blue */
+    --brand-2: #1e40af;         /* Darker blue */
+    --brand-3: #60a5fa;         /* Lighter blue */
+    --sidebar: linear-gradient(180deg, #1e3a8a 0%, #111827 100%);
+    --card: #ffffff;            /* White for cards */
+    --card-b: rgba(0,0,0,.05);  /* Subtle card border */
+    --ring: rgba(37,99,235,.2); /* Focus ring */
+    --shadow: 0 4px 20px rgba(0,0,0,.1); /* Softer shadow */
+  }
+
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial;
+    color: var(--text);
+    background: var(--bg);
+    line-height: 1.5;
+  }
+
+  /* Layout */
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    min-height: 100vh;
+    transition: grid-template-columns .3s ease;
+  }
+  .layout.collapsed { grid-template-columns: 80px 1fr; }
+
+  /* Sidebar */
+  .sidebar {
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 12px;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+  }
+  .logo {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: grid;
+    place-items: center;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(0,0,0,.2);
+  }
+  .brand-name {
+    font-size: 1.1rem; /* Reduced from 1.25rem */
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+
+  .collapse-btn {
+    margin: 0 8px 8px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: #fff;
+    border-radius: 12px;
+    padding: 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: background .2s ease;
+    font-size: 0.85rem; /* Added to reduce font size */
+  }
+  .collapse-btn:hover { background: rgba(255,255,255,.1); }
+
+  .menu {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px;
+  }
+  .item {
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: #d1d5db;
+    text-decoration: none;
+    transition: all .2s ease;
+    font-size: 0.9rem; /* Reduced from implied default (~1rem) */
+  }
+  .item .icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+  }
+  .item:hover {
+    background: rgba(255,255,255,.1);
+    transform: translateY(-1px);
+  }
+  .item.active {
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff;
+  }
+
+  .user-mini {
+    margin-top: auto;
+    padding: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    display: grid;
+    place-items: center;
+    color: #fff;
+    font-weight: 700;
+  }
+  .user-info {
+    display: flex;
+    flex-direction: column;
+  }
+  .username {
+    font-weight: 600;
+    color: #fff;
+    font-size: 0.9rem; /* Reduced from implied default (~1rem) */
+  }
+  .email {
+    color: #d1d5db;
+    font-size: 0.75rem; /* Reduced from 0.85rem */
+  }
+  
+  .sidebar-logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    color: #d1d5db;
+    text-decoration: none;
+    transition: all .2s ease;
+    margin-left: auto;
+  }
+  .sidebar-logout-btn:hover {
+    background: rgba(255,255,255,.1);
+    color: #ef4444;
+    transform: scale(1.1);
+  }
+
+  /* Collapsed Sidebar */
+  .layout.collapsed .brand-name,
+  .layout.collapsed .collapse-btn span,
+  .layout.collapsed .item .label,
+  .layout.collapsed .user-info { display: none; }
+  .layout.collapsed .item { justify-content: center; padding: 12px; }
+  .layout.collapsed .user-mini { justify-content: center; }
+
+  /* Main */
+  .main {
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    min-width: 0;
+  }
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    height: 64px;
+    padding: 0 24px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: #ffffff;
+    box-shadow: var(--shadow);
+  }
+  .crumb {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .user-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: #f9fafb;
+  }
+  .user-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #22c55e;
+  }
+  
+  .logout-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+    color: #6b7280;
+    text-decoration: none;
+    transition: all .2s ease;
+    margin-left: 8px;
+  }
+  .logout-btn:hover {
+    background: #f3f4f6;
+    color: #ef4444;
+    transform: scale(1.1);
+  }
+
+  .content {
+    padding: 24px;
+    display: grid;
+    gap: 24px;
+  }
+  .card {
+    border: 1px solid var(--card-b);
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    transition: transform .2s ease;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card h3 {
+    margin: 0 0 12px;
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .hero {
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--brand-3), var(--brand));
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #fff;
+  }
+  .hero .cta {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    color: #fff;
+    font-weight: 600;
+    background: var(--brand-2);
+    transition: all .2s ease;
+  }
+  .hero .cta:hover {
+    background: var(--brand);
+    transform: translateY(-2px);
+  }
+
+  .quick {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+  .qbtn {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    background: #f9fafb;
+    transition: all .2s ease;
+  }
+  .qbtn:hover {
+    box-shadow: var(--shadow);
+    border-color: var(--brand);
+    transform: translateY(-2px);
+  }
+  .qicon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: grid;
+    place-items: center;
+    background: linear-gradient(135deg, var(--brand), var(--brand-2));
+    color: #fff;
+    font-weight: 700;
+  }
+  .qt { font-weight: 600; }
+
+  /* Tooltip for collapsed sidebar */
+  .item[aria-label] { position: relative; }
+  .layout.collapsed .item[aria-label]:hover::after {
+    content: attr(aria-label);
+    position: absolute;
+    left: 70px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: #1f2a44;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: .85rem;
+    white-space: nowrap;
+    box-shadow: var(--shadow);
+    z-index: 10;
+  }
+
+  @media (max-width: 900px) {
+    .layout { grid-template-columns: 80px 1fr; }
+    .content { padding: 16px; }
+    .quick { grid-template-columns: repeat(2, 1fr); }
+  }
+  
+  @media (max-width: 600px) {
+    .quick { grid-template-columns: 1fr; }
+  }
+
+  /* Modal styles */
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.45);
+    display: none;
+    place-items: center;
+    z-index: 50;
+  }
+  .modal {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    box-shadow: 0 20px 50px rgba(0,0,0,.12);
+    width: min(720px,94vw);
+    padding: 20px;
+  }
+  .row {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .row > div {
+    flex: 1;
+    min-width: 220px;
+  }
+  .grid {
+    display: grid;
+    gap: 12px;
+  }
+  label {
+    font-weight: 600;
+    display: block;
+    margin: 10px 0 6px;
+    color: var(--text);
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    font-size: 1rem;
+    background: var(--card);
+    color: var(--text);
+  }
+  .btn {
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    background: var(--card);
+    color: var(--text);
+    font-size: 0.9rem;
+  }
+  .btn.primary {
+    background: linear-gradient(135deg,var(--brand),var(--brand-2));
+    color: #fff;
+    border: none;
+  }
+  .pill {
+    font-size: .85rem;
+    background: #eef2ff;
+    color: #3730a3;
+    border-radius: 999px;
+    padding: 4px 10px;
+    display: inline-block;
+  }
+  .muted {
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div id="layout" class="layout">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">A</div>
+      <div class="brand-name">Acafo</div>
+    </div>
+
+    <button id="collapseBtn" class="collapse-btn" type="button" aria-expanded="true" title="Collapse sidebar">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span>Collapse</span>
+    </button>
+
+    <nav class="menu">
+      <a class="item" href="{{ url_for('index') }}" data-route="home" aria-label="Home"><span class="icon">🏠</span><span class="label">Home</span></a>
+      <a class="item" href="{{ url_for('start') }}" data-route="bullets" aria-label="Generate bullet points"><span class="icon">•</span><span class="label">Bullet points & Skills</span></a>
+      <a class="item" href="{{ url_for('my_experiences') }}" data-route="experiences" aria-label="My Experiences"><span class="icon">🗂</span><span class="label">My Experiences</span></a>
+      <a class="item" href="{{ url_for('best_fit_jobs') }}" data-route="bestfit" aria-label="Best fit jobs"><span class="icon">💼</span><span class="label">Best fit jobs</span></a>
+      <a class="item" href="/resume" data-route="resume" aria-label="Build resume"><span class="icon">☰</span><span class="label">Build resume</span></a>
+      <a class="item" href="{{ url_for('coaching') }}" data-route="coaching" aria-label="Get 1:1 Coaching"><span class="icon">👤</span><span class="label">Get 1:1 Coaching</span></a>
+      <a class="item" href="{{ url_for('audit') }}" data-route="audit" aria-label="Resume audit"><span class="icon">✓</span><span class="label">Resume audit</span></a>
+    </nav>
+
+    <div class="user-mini">
+      <div class="avatar">{{ session.get('user_email', 'U')[0].upper() if session.get('user_email') else 'U' }}</div>
+      <div class="user-info">
+        <span class="username">{{ session.get('user_email', 'Guest').split('@')[0] if session.get('user_email') else 'Guest' }}</span>
+        <span class="email">{{ session.get('user_email', 'Not signed in') }}</span>
+      </div>
+      <a href="{{ url_for('logout') }}" class="sidebar-logout-btn" title="Sign out">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+          <polyline points="16,17 21,12 16,7"></polyline>
+          <line x1="21" y1="12" x2="9" y2="12"></line>
+        </svg>
+      </a>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <div class="crumb">Dashboard</div>
+      <div class="user-pill">
+        <span class="user-dot"></span>
+        <span>{{ session.get('user_email', 'Guest').split('@')[0] if session.get('user_email') else 'Guest' }}</span>
+        <a href="{{ url_for('logout') }}" class="logout-btn" title="Sign out">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+            <polyline points="16,17 21,12 16,7"></polyline>
+            <line x1="21" y1="12" x2="9" y2="12"></line>
+          </svg>
+        </a>
+      </div>
+    </div>
+
+    <div class="content">
+      <section class="hero">
+        <div>
+          <h2 style="margin:0 0 8px; font-size:1.5rem; font-weight:700">Welcome back, {{ session.get('user_email', 'Guest').split('@')[0] if session.get('user_email') else 'Guest' }}! 👋</h2>
+          <p style="margin:0; font-size:.95rem">Pick an action to continue. Your progress is saved automatically.</p>
+        </div>
+        <button class="cta" onclick="navigate('resume')">Open Resume Builder</button>
+      </section>
+
+      <section class="card">
+        <h3>Quick actions</h3>
+        <div class="quick">
+          <button class="qbtn requires-goal" onclick="navigate('bullets')"><span class="qicon">•</span><span class="qt">Bullet points & Skills</span></button>
+          <button class="qbtn requires-goal" onclick="navigate('experiences')"><span class="qicon">🗂</span><span class="qt">My Experiences</span></button>
+          <button class="qbtn requires-goal" onclick="window.location.href='{{ url_for('best_fit_jobs') }}'"><span class="qicon">💼</span><span class="qt">Best fit jobs</span></button>
+          <button class="qbtn requires-goal" onclick="navigate('resume')"><span class="qicon">☰</span><span class="qt">Build resume</span></button>
+          <button class="qbtn requires-goal" onclick="navigate('coaching')"><span class="qicon">👤</span><span class="qt">Get 1:1 Coaching</span></button>
+          <button class="qbtn requires-goal" onclick="navigate('audit')"><span class="qicon">✓</span><span class="qt">Resume audit</span></button>
+        </div>
+      </section>
+
+      <!-- Goal summary appears here (below quick actions) -->
+      <section id="goalSummary"></section>
+    </div>
+  </main>
+</div>
+
+<!-- Career Goal Modal -->
+<div id="goalModal" class="modal-backdrop">
+  <div class="modal">
+    <h3>Before we move forward</h3>
+    <p class="muted">Let's understand your career goal so we can tailor Acafo for you.</p>
+    <div class="grid">
+      <div class="row">
+        <div>
+          <label for="targetRole">Target Role *</label>
+          <input id="targetRole" placeholder="e.g., Product Manager"/>
+        </div>
+        <div>
+          <label for="industry">Industry</label>
+          <input id="industry" placeholder="e.g., FinTech"/>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="location">Location</label>
+          <input id="location" placeholder="City / Country or Remote"/>
+        </div>
+        <div>
+          <label for="timeline">Timeline</label>
+          <select id="timeline">
+            <option>ASAP</option>
+            <option>3 months</option>
+            <option>6 months</option>
+          </select>
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label for="koreanLevel">Korean (proficiency)</label>
+          <select id="koreanLevel">
+            <option>Beginner</option>
+            <option>Intermediate</option>
+            <option>Advanced</option>
+          </select>
+        </div>
+        <div>
+          <label for="otherLangs">Other languages</label>
+          <input id="otherLangs" placeholder="e.g., English, Japanese"/>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:14px;display:flex;gap:8px;justify-content:flex-end">
+      <button id="goalCancel" class="btn">Cancel</button>
+      <button id="goalSave" class="btn primary">Save</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Sidebar collapse/expand with memory
+  (function(){
+    const layout = document.getElementById('layout');
+    const btn = document.getElementById('collapseBtn');
+    const key = 'sidebar-collapsed';
+
+    function applyState(collapsed) {
+      layout.classList.toggle('collapsed', collapsed);
+      btn.setAttribute('aria-expanded', String(!collapsed));
+      btn.innerHTML = collapsed
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 5l7 7-7 7" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Expand</span>`
+        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M15 19l-7-7 7-7" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg><span>Collapse</span>`;
+    }
+
+    const saved = localStorage.getItem(key);
+    applyState(saved === '1');
+
+    btn.addEventListener('click', () => {
+      const collapsed = !layout.classList.contains('collapsed');
+      localStorage.setItem(key, collapsed ? '1' : '0');
+      applyState(collapsed);
+    });
+  })();
+
+  // Route wiring (replace with your Flask URLs)
+  const routes = {
+    home: "{{ url_for('index') }}",
+    bullets: "{{ url_for('start') }}",
+    skills: "{{ url_for('start') }}",
+    experiences: "{{ url_for('my_experiences') }}",
+    resume: "/this-page-does-not-exist",
+    coaching: "{{ url_for('coaching') }}",
+    audit: "{{ url_for('audit') }}"
+  };
+  function navigate(r) {
+    const href = routes[r] || "/";
+    window.location.href = href;
+  }
+
+  // Mark active menu item (only one) with override support for identical paths
+  (function(){
+    const storageKey = 'active-route';
+    const menuItems = Array.from(document.querySelectorAll('.menu .item'));
+
+    // Persist last clicked route
+    menuItems.forEach(item => {
+      item.addEventListener('click', () => {
+        const routeKey = item.getAttribute('data-route');
+        if (routeKey) {
+          localStorage.setItem(storageKey, routeKey);
+        }
+      }, { passive: true });
+    });
+
+    // Determine which item to activate
+    const path = location.pathname;
+    const override = localStorage.getItem(storageKey);
+
+    menuItems.forEach(item => item.classList.remove('active'));
+
+    let target = null;
+    if (override) {
+      target = menuItems.find(item => item.getAttribute('data-route') === override) || null;
+    }
+    if (!target) {
+      // Fallback: first item whose mapped url matches current path
+      target = menuItems.find(item => routes[item.getAttribute('data-route')] === path) || null;
+    }
+    if (target) {
+      target.classList.add('active');
+    }
+  })();
+
+  // Career Goal Modal Functionality
+  const modal = document.getElementById('goalModal');
+  const goalSummary = document.getElementById('goalSummary');
+
+  function openModal() { 
+    modal.style.display = 'grid'; 
+  }
+  
+  function closeModal() { 
+    modal.style.display = 'none'; 
+  }
+
+  function renderGoalCard(goal) {
+    if (!goal) { 
+      goalSummary.innerHTML = ''; 
+      return; 
+    }
+    
+    goalSummary.innerHTML = `
+      <section class="card" style="background: linear-gradient(135deg, #ffffff 0%, #f0f8ff 100%); border: 2px solid #ec4899; position: relative; overflow: hidden;">
+        <div style="position: absolute; top: 0; right: 0; width: 100px; height: 100px; background: linear-gradient(135deg, #3b82f6, #1e40af); opacity: 0.08; border-radius: 50%; transform: translate(30px, -30px);"></div>
+        
+        <div style="margin-bottom: 20px;">
+                             <h3 style="margin: 0 0 8px 0; font-size: 1.1rem; color: #000000; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">🎯 Your Career Goal</h3>
+          <div style="background: linear-gradient(135deg, #3b82f6, #1e40af); color: white; padding: 16px 20px; border-radius: 12px; text-align: center; box-shadow: 0 4px 20px rgba(59, 130, 246, 0.3);">
+            <div style="font-size: 0.9rem; opacity: 0.9; margin-bottom: 4px;">Target Role</div>
+            <div style="font-size: 1.4rem; font-weight: 700; letter-spacing: 0.5px;">${goal.target_role}</div>
+          </div>
+        </div>
+        
+        <div class="row" style="margin-bottom: 16px;">
+          <div style="flex: 1; min-width: 120px;">
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 4px; font-weight: 600;">Industry</div>
+            <div style="background: #e0e7ff; color: #3730a3; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">${goal.industry || '—'}</div>
+          </div>
+          <div style="flex: 1; min-width: 120px;">
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 4px; font-weight: 600;">Location</div>
+            <div style="background: #e0e7ff; color: #3730a3; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">${goal.location || '—'}</div>
+          </div>
+          <div style="flex: 1; min-width: 120px;">
+            <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 4px; font-weight: 600;">Timeline</div>
+            <div style="background: #e0e7ff; color: #3730a3; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">${goal.timeline}</div>
+          </div>
+        </div>
+        
+        <div style="margin-bottom: 16px;">
+          <div style="font-size: 0.8rem; color: #64748b; margin-bottom: 8px; font-weight: 600;">Languages</div>
+          <div class="row" style="gap: 8px;">
+            <div style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">Korean: ${goal.korean_level}</div>
+            ${(goal.other_languages || []).map(l => `<div style="background: #dcfce7; color: #166534; padding: 6px 12px; border-radius: 8px; font-size: 0.85rem; font-weight: 500;">${l}</div>`).join('')}
+          </div>
+        </div>
+        
+        <div style="text-align: center;">
+          <button class="btn" id="editGoalBtn" style="background: #3b82f6; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: 500; transition: all 0.2s ease;">✏️ Update Goal</button>
+        </div>
+      </section>
+    `;
+    
+    document.getElementById('editGoalBtn').onclick = () => openModal();
+  }
+
+  async function fetchGoal() {
+    try {
+      const r = await fetch('/api/goal');
+      const j = await r.json();
+      return j.goal || null;
+    } catch (error) {
+      console.error('Error fetching goal:', error);
+      return null;
+    }
+  }
+
+  async function saveGoal(payload) {
+    try {
+      const r = await fetch('/api/goal', {
+        method: 'POST', 
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+      });
+      return r.ok;
+    } catch (error) {
+      console.error('Error saving goal:', error);
+      return false;
+    }
+  }
+
+  // Initialize career goal functionality
+  (async () => {
+    // Load existing goal
+    let goal = await fetchGoal();
+    renderGoalCard(goal);
+
+    // If no goal, force modal open and block quick actions
+    const blockers = document.querySelectorAll('.requires-goal');
+    
+    function attachBlockers() {
+      blockers.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          if (!goal) { 
+            e.preventDefault(); 
+            e.stopPropagation();
+            openModal(); 
+          }
+        }, {capture: true});
+      });
+    }
+    
+    attachBlockers();
+    
+    if (!goal) {
+      openModal();
+    }
+
+    // Modal buttons
+    document.getElementById('goalCancel').onclick = () => {
+      if (goal) { 
+        closeModal(); 
+      } // allow cancel only if goal exists already
+    };
+    
+    document.getElementById('goalSave').onclick = async () => {
+      const payload = {
+        target_role: document.getElementById('targetRole').value.trim(),
+        industry: document.getElementById('industry').value.trim(),
+        location: document.getElementById('location').value.trim(),
+        timeline: document.getElementById('timeline').value,
+        korean_level: document.getElementById('koreanLevel').value,
+        other_languages: document.getElementById('otherLangs').value
+      };
+      
+      if (!payload.target_role) { 
+        alert('Please enter a target role.'); 
+        return; 
+      }
+      
+      const ok = await saveGoal(payload);
+      if (ok) {
+        goal = await fetchGoal();
+        renderGoalCard(goal);
+        closeModal();
+      } else {
+        alert('Could not save your goal. Please try again.');
+      }
+    };
+
+    // Pre-fill modal with existing goal when editing
+    document.addEventListener('click', async (e) => {
+      if (e.target && e.target.id === 'editGoalBtn') {
+        const g = await fetchGoal();
+        if (g) {
+          document.getElementById('targetRole').value = g.target_role || '';
+          document.getElementById('industry').value = g.industry || '';
+          document.getElementById('location').value = g.location || '';
+          document.getElementById('timeline').value = g.timeline || 'ASAP';
+          document.getElementById('koreanLevel').value = g.korean_level || 'Beginner';
+          document.getElementById('otherLangs').value = (g.other_languages || []).join(', ');
+        }
+      }
+    });
+  })();
+</script>
+</body>
+</html>

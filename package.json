@@ -1,0 +1,21 @@
+{
+  "name": "resume-pdf-server",
+  "version": "1.0.0",
+  "description": "PDF generation server for resume builder",
+  "main": "pdf-server.js",
+  "scripts": {
+    "start": "node pdf-server.js",
+    "dev": "nodemon pdf-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "puppeteer": "^24.9.0",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "keywords": ["pdf", "puppeteer", "resume"],
+  "author": "",
+  "license": "MIT"
+}

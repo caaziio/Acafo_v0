@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+
+{% block title %}Acafo • Final Resume{% endblock %}
+
+{% block page_title %}Final Resume{% endblock %}
+
+{% block content %}
+<section class="hero">
+  <div>
+    <h2 style="margin:0 0 8px; font-size:1.5rem; font-weight:700">🎉 Your Final Resume</h2>
+    <p style="margin:0; font-size:.95rem">Your professional resume is ready! Review and download it below.</p>
+  </div>
+  <button class="cta btn btn-primary" onclick="window.print()">🖨️ Print Resume</button>
+</section>
+
+<div class="card">
+  <div class="mb-6">
+    <h3 class="text-xl font-semibold mb-4">📄 Resume Content</h3>
+    <div class="bg-gray-50 p-6 rounded-lg border" style="font-family: 'Courier New', monospace; white-space: pre-wrap; line-height: 1.6;">{{ result }}</div>
+  </div>
+  
+  <div class="flex gap-4 justify-center mt-8">
+    <a href="{{ url_for('my_experiences') }}" class="btn btn-secondary">
+      ← Back to Experiences
+    </a>
+    <a href="{{ url_for('index') }}" class="btn btn-primary">
+      🏠 Start Over
+    </a>
+    <button class="btn btn-success" onclick="copyToClipboard()">
+      📋 Copy to Clipboard
+    </button>
+  </div>
+</div>
+
+<script>
+function copyToClipboard() {
+  const resumeText = {{ result|tojson }};
+  navigator.clipboard.writeText(resumeText).then(function() {
+    // Create a temporary notification
+    const notification = document.createElement('div');
+    notification.textContent = '✅ Resume copied to clipboard!';
+    notification.style.cssText = 'position:fixed;top:20px;right:20px;background:#10b981;color:white;padding:12px 20px;border-radius:8px;z-index:1000;font-weight:600;';
+    document.body.appendChild(notification);
+    setTimeout(() => notification.remove(), 3000);
+  }).catch(function(err) {
+    alert('Failed to copy resume to clipboard');
+  });
+}
+</script>
+{% endblock %}

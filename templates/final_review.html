@@ -1,0 +1,972 @@
+{% extends "layout.html" %}
+
+{% block title %}Acafo • Review & Finalize{% endblock %}
+
+{% block page_title %}Review & Finalize{% endblock %}
+
+{% block content %}
+<div class="page-container">
+<section class="hero">
+  <div>
+    <h2 style="margin:0 0 8px; font-size:1.5rem; font-weight:700">Review & Finalize</h2>
+    <p style="margin:0; font-size:.95rem">Review your experience and make any final adjustments</p>
+  </div>
+  <button class="btn-primary-outline" onclick="document.getElementById('finalReviewForm').requestSubmit()">💾 Save Experience</button>
+</section>
+
+<form method="POST" action="{{ url_for('save') }}" id="finalReviewForm">
+  <!-- Title Input -->
+  <section class="card">
+    <h3>Experience Title</h3>
+    <input 
+      type="text" 
+      name="title" 
+      id="title" 
+      value="{{ experience.title }}" 
+      required
+      placeholder="Enter a title for this experience">
+  </section>
+
+  <!-- Start/End Dates -->
+  <section class="card">
+    <h3>Start & End Dates <span style="color: #dc2626">*</span></h3>
+    <div class="flex gap-4 items-center">
+      <div class="flex-1">
+        <label for="start_date" class="block text-sm font-medium mb-1">Start Date</label>
+        <input type="date" name="start_date" id="start_date" value="{{ experience.start_date or '' }}" required class="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+      </div>
+      <div class="flex-1">
+        <label for="end_date" class="block text-sm font-medium mb-1">End Date</label>
+        <div class="flex items-center gap-2 flex-nowrap" style="white-space:nowrap;">
+          <input type="date" name="end_date" id="end_date" value="{{ experience.end_date if experience.end_date != 'present' else '' }}" required class="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+          <input type="hidden" name="end_date_hidden" id="end_date_hidden" value="{{ 'present' if experience.end_date == 'present' else '' }}">
+          <label class="flex items-center gap-1 text-sm font-normal mb-0" style="margin-left:8px; white-space:nowrap;">
+            <input type="checkbox" id="to_present" name="to_present" value="1" {% if experience.end_date == 'present' %}checked{% endif %}>
+            To present
+          </label>
+        </div>
+      </div>
+    </div>
+    <p class="text-sm text-gray-500 mt-2">You must provide both start and end dates for this experience.</p>
+  </section>
+
+  <!-- Experience Text (Read-only) -->
+  <section class="card">
+    <h3>Your Original Story/Experience</h3>
+    <div class="bg-gray-50 rounded-lg p-4 border-2 border-gray-200">
+      <p class="text-gray-700 text-sm leading-relaxed">{{ experience.text }}</p>
+    </div>
+  </section>
+
+  <!-- Editable Bullet Points -->
+  <section class="card" style="background: #eafaf1;"> <!-- very light green -->
+    <h3>Bullet Points</h3>
+    <div class="rounded-lg p-4 border-2 border-green-100 bg-white">
+      <ul id="bulletList" class="space-y-3">
+        {% for bullet in experience.final_bullets %}
+          <li class="bullet-item group flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 transition-all">
+            <span class="bullet-text flex-1 text-gray-700">{{ bullet }}</span>
+            <div class="bullet-controls opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+              <button type="button" class="icon edit text-blue-600 hover:text-blue-800 p-1" title="Edit" aria-label="Edit bullet">
+                ✏️
+              </button>
+              <button type="button" class="icon delete text-red-600 hover:text-red-800 p-1" title="Delete" aria-label="Delete bullet">
+                🗑️
+              </button>
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+      
+      <!-- Add New Bullet Button -->
+      <button type="button" id="addBulletBtn" class="btn-secondary-blue">
+        ➕ Add Bullet Point
+      </button>
+      
+      <p class="text-sm text-gray-500 mt-2">Each bullet point is limited to 150 characters for optimal resume formatting.</p>
+    </div>
+  </section>
+
+  <!-- Skills Selection -->
+  <section class="card">
+    <h3>Extracted Skills</h3>
+    <div class="bg-gray-50 rounded-xl p-6 border border-gray-200">
+      <div class="skills-grid">
+        {% for skill in experience.final_skills %}
+          {% if skill.strip() %}
+            {% set skill_colors = [
+              'bg-purple-100 text-purple-800 border-purple-200',
+              'bg-blue-100 text-blue-800 border-blue-200',
+              'bg-green-100 text-green-800 border-green-200',
+              'bg-yellow-100 text-yellow-800 border-yellow-200',
+              'bg-pink-100 text-pink-800 border-pink-200',
+              'bg-indigo-100 text-indigo-800 border-indigo-200',
+              'bg-red-100 text-red-800 border-red-200',
+              'bg-teal-100 text-teal-800 border-teal-200',
+              'bg-orange-100 text-orange-800 border-orange-200',
+              'bg-cyan-100 text-cyan-800 border-cyan-200'
+            ] %}
+            {% set color_class = skill_colors[loop.index0 % skill_colors|length] %}
+            <label class="skill-tag cursor-pointer {{ color_class }}">
+              <input 
+                type="checkbox" 
+                name="skills" 
+                value="{{ skill.strip() }}" 
+                checked
+                class="skill-checkbox-hidden">
+              <span class="skill-tag-text">{{ skill.strip() }}</span>
+            </label>
+          {% endif %}
+        {% endfor %}
+      </div>
+      <div class="skills-tip">
+        <span class="tip-icon">💡</span>
+        <span class="tip-text">Tip: Click on any skill to select or remove it from your resume</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Suggestions -->
+  {% if not experience.improved %}
+    <section class="card">
+      <h3>AI Suggestions</h3>
+      <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+        <ul id="suggestionsList" class="space-y-2">
+          {% if experience.suggestions %}
+            {% if experience.suggestions is string %}
+              {% set suggestions = experience.suggestions.split('\n') if '\n' in experience.suggestions else experience.suggestions.split('•') if '•' in experience.suggestions else experience.suggestions.split('-') if '-' in experience.suggestions else experience.suggestions.split(';') if ';' in experience.suggestions else [experience.suggestions] %}
+              {% for suggestion in suggestions %}
+                {% if suggestion.strip() %}
+                  {% set clean_suggestion = suggestion.strip().lstrip('-').lstrip('•').lstrip('*').strip() %}
+                  {% if clean_suggestion %}
+                    <li class="text-sm text-blue-800">{{ clean_suggestion }}</li>
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% else %}
+              {% for suggestion in experience.suggestions %}
+                {% if suggestion.strip() %}
+                  {% set clean_suggestion = suggestion.strip().lstrip('-').lstrip('•').lstrip('*').strip() %}
+                  {% if clean_suggestion %}
+                    <li class="text-sm text-blue-800">{{ clean_suggestion }}</li>
+                  {% endif %}
+                {% endif %}
+              {% endfor %}
+            {% endif %}
+          {% else %}
+            <li class="text-sm text-blue-800">No suggestions available</li>
+          {% endif %}
+        </ul>
+        
+        <div class="mt-4">
+          <label for="improvement" class="block text-sm font-medium text-blue-800 mb-2">How can we improve this experience?</label>
+          <textarea 
+            id="improvement" 
+            name="improvement" 
+            rows="3" 
+            class="w-full px-3 py-2 border border-blue-200 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" 
+            placeholder="Add extra details or context as a response to AI suggestions (optional)"></textarea>
+          <button type="button" onclick="submitImprovement()" class="improvement-btn">
+            <span class="btn-content">
+              <span>Run improvement & update bullets</span>
+              <svg class="btn-arrow" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd"/>
+              </svg>
+            </span>
+            <div class="btn-overlay"></div>
+          </button>
+        </div>
+      </div>
+    </section>
+  {% endif %}
+
+  <!-- Hidden field for final bullets -->
+  <input type="hidden" name="final_bullets_json" id="finalBulletsJson" value='{{ experience.final_bullets | tojson | safe }}'>
+  
+  <!-- Action Buttons -->
+  <section class="card">
+    <div class="flex justify-end items-center">
+      <div class="flex items-center gap-3">
+        <button type="submit" class="btn-primary">
+          💾 Save
+        </button>
+      </div>
+    </div>
+  </section>
+</form>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<style>
+  /* Override to match dashboard layout structure */
+  .content {
+    padding: 24px;
+    display: grid;
+    gap: 32px;
+  }
+  
+  .card {
+    border: 1px solid var(--card-b);
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    transition: all .3s ease;
+    position: relative;
+    z-index: 1;
+    margin: 8px 0;
+  }
+  
+  .card:hover { 
+    transform: translateY(-4px); 
+    box-shadow: 0 8px 25px rgba(0,0,0,.15);
+    z-index: 10;
+  }
+  
+  .card h3 {
+    margin: 0 0 12px;
+    font-size: 1.125rem;
+    font-weight: 600;
+  }
+
+  .hero {
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--brand-3), var(--brand));
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: #fff;
+    margin: 8px 0;
+    position: relative;
+    z-index: 1;
+    transition: all .3s ease;
+  }
+
+  .hero:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.3);
+    z-index: 10;
+  }
+
+  /* Form styles */
+  input[type="text"], textarea {
+    width: 100%;
+    padding: 12px 16px;
+    border: 2px solid #e5e7eb;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: all 0.2s ease;
+  }
+  input[type="text"]:focus, textarea:focus {
+    outline: none;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+
+  /* Bullet editing styles */
+  .bullet-item {
+    position: relative;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+  }
+
+  .bullet-item.editing .bullet-text {
+    display: none;
+  }
+
+  .bullet-item.editing .bullet-input-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .bullet-item:not(.editing) .bullet-input-container {
+    display: none;
+  }
+
+  .bullet-input {
+    flex: 1;
+    padding: 8px 12px;
+    border: 2px solid var(--brand);
+    border-radius: 6px;
+    font-size: 14px;
+    outline: none;
+    transition: all 0.2s;
+  }
+
+  .bullet-input:focus {
+    border-color: var(--brand-2);
+    box-shadow: 0 0 0 3px var(--ring);
+  }
+
+  .charcount {
+    font-size: 12px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .icon {
+    cursor: pointer;
+    transition: all 0.2s;
+    border-radius: 4px;
+    padding: 4px;
+  }
+
+  .icon:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+
+  .icon.save {
+    color: #059669;
+  }
+
+  .icon.cancel {
+    color: #dc2626;
+  }
+
+  .bullet-controls {
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .bullet-item:hover .bullet-controls {
+    opacity: 1;
+  }
+
+  /* Button styles */
+  .btn-primary, .btn-secondary, .btn-secondary-blue, .btn-primary-outline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 2px solid transparent;
+    white-space: nowrap;
+  }
+
+  /* Primary button - Blue background, white text */
+  .btn-primary {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+  }
+
+  .btn-primary:hover {
+    background: #1d4ed8;
+    border-color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  }
+
+  /* Primary outline button - White background, blue border (for important actions) */
+  .btn-primary-outline {
+    background: white;
+    color: #2563eb;
+    border-color: #2563eb;
+  }
+
+  .btn-primary-outline:hover {
+    background: #eff6ff;
+    border-color: #1d4ed8;
+    color: #1d4ed8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+  }
+
+  /* Secondary button - Light gray, neutral */
+  .btn-secondary {
+    background: #f8fafc;
+    color: #475569;
+    border-color: #e2e8f0;
+  }
+
+  .btn-secondary:hover {
+    background: #f1f5f9;
+    border-color: #cbd5e1;
+    color: #334155;
+  }
+
+  /* Secondary blue button - Light blue background */
+  .btn-secondary-blue {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-color: #bfdbfe;
+  }
+
+  .btn-secondary-blue:hover {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    color: #1e40af;
+  }
+
+  /* Skills grid styling - maximum 4 per line */
+  .skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 12px;
+    max-width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    .skills-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  @media (max-width: 767px) {
+    .skills-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 480px) {
+    .skills-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Skills tag styling */
+  .skill-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    border-radius: 20px;
+    border: 1px solid;
+    font-size: 14px;
+    font-weight: 600;
+    transition: all 0.2s ease;
+    position: relative;
+    user-select: none;
+    white-space: nowrap;
+    width: 100%;
+    text-align: center;
+    min-height: 40px;
+  }
+
+  .skill-tag:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .skill-checkbox-hidden {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .skill-tag-text {
+    line-height: 1.2;
+  }
+
+  /* Unchecked skill styling */
+  .skill-checkbox-hidden:not(:checked) ~ .skill-tag-text {
+    text-decoration: line-through;
+    opacity: 0.6;
+  }
+
+  .skill-tag:has(.skill-checkbox-hidden:not(:checked)) {
+    opacity: 0.6;
+    transform: scale(0.95);
+  }
+
+  /* Color classes for skills */
+  .bg-purple-100 { background-color: #f3e8ff; }
+  .text-purple-800 { color: #6b21a8; }
+  .border-purple-200 { border-color: #d8b4fe; }
+
+  .bg-blue-100 { background-color: #dbeafe; }
+  .text-blue-800 { color: #1e40af; }
+  .border-blue-200 { border-color: #bfdbfe; }
+
+  .bg-green-100 { background-color: #dcfce7; }
+  .text-green-800 { color: #166534; }
+  .border-green-200 { border-color: #bbf7d0; }
+
+  .bg-yellow-100 { background-color: #fef3c7; }
+  .text-yellow-800 { color: #92400e; }
+  .border-yellow-200 { border-color: #fde68a; }
+
+  .bg-pink-100 { background-color: #fce7f3; }
+  .text-pink-800 { color: #9d174d; }
+  .border-pink-200 { border-color: #fbcfe8; }
+
+  .bg-indigo-100 { background-color: #e0e7ff; }
+  .text-indigo-800 { color: #3730a3; }
+  .border-indigo-200 { border-color: #c7d2fe; }
+
+  .bg-red-100 { background-color: #fee2e2; }
+  .text-red-800 { color: #991b1b; }
+  .border-red-200 { border-color: #fecaca; }
+
+  .bg-teal-100 { background-color: #ccfbf1; }
+  .text-teal-800 { color: #115e59; }
+  .border-teal-200 { border-color: #99f6e4; }
+
+  .bg-orange-100 { background-color: #fed7aa; }
+  .text-orange-800 { color: #9a3412; }
+  .border-orange-200 { border-color: #fecaca; }
+
+  .bg-cyan-100 { background-color: #cffafe; }
+  .text-cyan-800 { color: #155e75; }
+  .border-cyan-200 { border-color: #a5f3fc; }
+
+  /* Skills tip styling */
+  .skills-tip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    padding: 10px 16px;
+    background: #f0f9ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    font-size: 13px;
+  }
+
+  .tip-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .tip-text {
+    color: #1e40af;
+    font-weight: 500;
+    text-align: center;
+  }
+
+  /* Improvement button styling - matching the followup page */
+  .improvement-btn {
+    position: relative;
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    color: white;
+    font-weight: 700;
+    font-size: 1rem;
+    padding: 16px 28px;
+    border: none;
+    border-radius: 12px;
+    box-shadow: 0 8px 20px rgba(37, 99, 235, 0.3), 0 3px 10px rgba(124, 58, 237, 0.2);
+    cursor: pointer;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 200px;
+    border: 2px solid transparent;
+    backdrop-filter: blur(10px);
+    margin-top: 12px;
+  }
+
+  .improvement-btn:hover {
+    transform: translateY(-2px) scale(1.02);
+    box-shadow: 0 15px 30px rgba(37, 99, 235, 0.4), 0 6px 15px rgba(124, 58, 237, 0.3);
+    background: linear-gradient(135deg, #1d4ed8 0%, #6d28d9 100%);
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .improvement-btn:active {
+    transform: translateY(-1px) scale(0.99);
+    transition: all 0.15s ease;
+  }
+
+  .improvement-btn .btn-content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    letter-spacing: 0.3px;
+  }
+
+  .improvement-btn .btn-arrow {
+    width: 18px;
+    height: 18px;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  }
+
+  .improvement-btn:hover .btn-arrow {
+    transform: translateX(4px) scale(1.1) rotate(2deg);
+  }
+
+  .improvement-btn .btn-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.05) 50%, rgba(255,255,255,0.02) 100%);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+    border-radius: 12px;
+    z-index: 1;
+  }
+
+  .improvement-btn:hover .btn-overlay {
+    opacity: 1;
+  }
+
+  .improvement-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+    transition: left 0.6s;
+    z-index: 2;
+    border-radius: 12px;
+  }
+
+  .improvement-btn:hover::before {
+    left: 100%;
+  }
+
+  /* Utility classes */
+  .bg-gray-50 { background-color: #f9fafb; }
+  .bg-blue-50 { background-color: #eff6ff; }
+  .bg-blue-100 { background-color: #dbeafe; }
+  .bg-blue-200 { background-color: #bfdbfe; }
+  .bg-blue-600 { background-color: #2563eb; }
+  .bg-blue-700 { background-color: #1d4ed8; }
+  .bg-white { background-color: #ffffff; }
+  
+  .text-blue-600 { color: #2563eb; }
+  .text-blue-700 { color: #1d4ed8; }
+  .text-blue-800 { color: #1e40af; }
+  .text-gray-500 { color: #6b7280; }
+  .text-gray-700 { color: #374151; }
+  .text-red-600 { color: #dc2626; }
+  .text-white { color: #ffffff; }
+  
+  .border-blue-200 { border-color: #bfdbfe; }
+  .border-blue-300 { border-color: #93c5fd; }
+  .border-gray-200 { border-color: #e5e7eb; }
+  .border-gray-300 { border-color: #d1d5db; }
+  
+  .rounded { border-radius: 0.25rem; }
+  .rounded-lg { border-radius: 0.5rem; }
+  .rounded-md { border-radius: 0.375rem; }
+  
+  .px-3 { padding-left: 0.75rem; padding-right: 0.75rem; }
+  .px-4 { padding-left: 1rem; padding-right: 1rem; }
+  .px-6 { padding-left: 1.5rem; padding-right: 1.5rem; }
+  .py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+  
+  .mt-2 { margin-top: 0.5rem; }
+  .mt-4 { margin-top: 1rem; }
+  
+  .mb-2 { margin-bottom: 0.5rem; }
+  
+  .w-full { width: 100%; }
+  
+  .flex { display: flex; }
+  .block { display: block; }
+  .hidden { display: none; }
+  
+  .items-center { align-items: center; }
+  .items-start { align-items: flex-start; }
+  
+  .justify-between { justify-content: space-between; }
+  
+  .gap-2 { gap: 0.5rem; }
+  .gap-3 { gap: 0.75rem; }
+  
+  .space-y-2 > * + * { margin-top: 0.5rem; }
+  .space-y-3 > * + * { margin-top: 0.75rem; }
+  
+  .text-sm { font-size: 0.875rem; }
+  .text-base { font-size: 1rem; }
+  
+  .font-medium { font-weight: 500; }
+  
+  .leading-relaxed { line-height: 1.625; }
+  
+  .transition-all { transition: all 0.2s ease; }
+  .transition-colors { transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease; }
+  .duration-200 { transition-duration: 200ms; }
+  
+  .hover\:bg-blue-200:hover { background-color: #bfdbfe; }
+  .hover\:bg-blue-700:hover { background-color: #1d4ed8; }
+  .hover\:bg-gray-50:hover { background-color: #f9fafb; }
+  .hover\:border-blue-300:hover { border-color: #93c5fd; }
+  .hover\:text-blue-800:hover { color: #1e40af; }
+  
+  .focus\:outline-none:focus { outline: none; }
+  .focus\:ring-2:focus { box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
+  .focus\:ring-blue-500:focus { box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.5); }
+  .focus\:border-transparent:focus { border-color: transparent; }
+  
+  .group:hover .group-hover\:opacity-100 { opacity: 1; }
+  
+  .opacity-0 { opacity: 0; }
+  
+  .transition-opacity { transition: opacity 0.2s ease; }
+</style>
+
+<script>
+  class BulletEditor {
+    constructor() {
+      this.bulletList = document.getElementById('bulletList');
+      this.addBulletBtn = document.getElementById('addBulletBtn');
+      this.finalBulletsJson = document.getElementById('finalBulletsJson');
+      this.form = document.getElementById('finalReviewForm');
+      
+      this.initializeEventListeners();
+    }
+    
+    initializeEventListeners() {
+      this.addBulletBtn.addEventListener('click', () => this.addNewBullet());
+      
+      // Delegate events for edit/delete buttons
+      this.bulletList.addEventListener('click', (e) => {
+        if (e.target.classList.contains('edit')) {
+          this.editBullet(e.target.closest('.bullet-item'));
+        } else if (e.target.classList.contains('delete')) {
+          this.deleteBullet(e.target.closest('.bullet-item'));
+        }
+      });
+
+      // Ensure bullets JSON is up to date on submit and finalize any in-progress edits
+      if (this.form) {
+        this.form.addEventListener('submit', () => {
+          this.finalizeEdits();
+          this.updateBulletsJson();
+        });
+      }
+    }
+    
+    editBullet(bulletItem) {
+      if (bulletItem.classList.contains('editing')) return;
+      
+      bulletItem.classList.add('editing');
+      
+      const bulletText = bulletItem.querySelector('.bullet-text');
+      const text = bulletText.textContent.trim();
+      
+      // Create input container
+      const inputContainer = document.createElement('div');
+      inputContainer.className = 'bullet-input-container';
+      
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = 'bullet-input';
+      input.value = text;
+      input.maxLength = 150;
+      
+      const charCount = document.createElement('span');
+      charCount.className = 'charcount';
+      charCount.textContent = `${input.value.length}/150`;
+      
+      const saveBtn = document.createElement('button');
+      saveBtn.type = 'button';
+      saveBtn.className = 'icon save';
+      saveBtn.innerHTML = '💾';
+      saveBtn.onclick = () => this.saveBullet(bulletItem);
+      
+      const cancelBtn = document.createElement('button');
+      cancelBtn.type = 'button';
+      cancelBtn.className = 'icon cancel';
+      cancelBtn.innerHTML = '❌';
+      cancelBtn.onclick = () => this.cancelEdit(bulletItem);
+      
+      inputContainer.appendChild(input);
+      inputContainer.appendChild(charCount);
+      inputContainer.appendChild(saveBtn);
+      inputContainer.appendChild(cancelBtn);
+      
+      bulletItem.appendChild(inputContainer);
+      
+      // Focus input and select text
+      input.focus();
+      input.select();
+      
+      // Update character count
+      input.addEventListener('input', () => {
+        charCount.textContent = `${input.value.length}/150`;
+      });
+      
+      // Handle Enter key
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          this.saveBullet(bulletItem);
+        } else if (e.key === 'Escape') {
+          this.cancelEdit(bulletItem);
+        }
+      });
+    }
+    
+    finalizeEdits() {
+      const editingItems = Array.from(this.bulletList.querySelectorAll('.bullet-item.editing'));
+      for (const item of editingItems) {
+        const input = item.querySelector('.bullet-input');
+        if (input) {
+          const text = input.value.trim();
+          if (text) {
+            const bulletText = item.querySelector('.bullet-text');
+            bulletText.textContent = text;
+          } else {
+            item.remove();
+          }
+          this.cancelEdit(item);
+        }
+      }
+    }
+
+    saveBullet(bulletItem) {
+      const input = bulletItem.querySelector('.bullet-input');
+      const bulletText = bulletItem.querySelector('.bullet-text');
+      const newText = input.value.trim();
+      
+      if (!newText) {
+        this.deleteBullet(bulletItem);
+        return;
+      }
+      
+      // Update text
+      bulletText.textContent = newText;
+      
+      // Remove editing state
+      this.cancelEdit(bulletItem);
+      
+      // Update JSON
+      this.updateBulletsJson();
+    }
+    
+    cancelEdit(bulletItem) {
+      bulletItem.classList.remove('editing');
+      const inputContainer = bulletItem.querySelector('.bullet-input-container');
+      if (inputContainer) {
+        inputContainer.remove();
+      }
+    }
+    
+    deleteBullet(bulletItem) {
+      bulletItem.remove();
+      this.updateBulletsJson();
+    }
+    
+    addNewBullet() {
+      const newBullet = document.createElement('li');
+      newBullet.className = 'bullet-item group flex items-start gap-3 p-3 bg-white rounded-lg border border-gray-200 hover:border-blue-300 transition-all';
+      newBullet.innerHTML = `
+        <span class="bullet-text flex-1 text-gray-700">New bullet point</span>
+        <div class="bullet-controls opacity-0 group-hover:opacity-100 transition-opacity flex gap-2">
+          <button type="button" class="icon edit text-blue-600 hover:text-blue-800 p-1" title="Edit" aria-label="Edit bullet">
+            ✏️
+          </button>
+          <button type="button" class="icon delete text-red-600 hover:text-red-800 p-1" title="Delete" aria-label="Delete bullet">
+            🗑️
+          </button>
+        </div>
+      `;
+      
+      this.bulletList.appendChild(newBullet);
+      
+      // Automatically start editing the new bullet
+      setTimeout(() => {
+        this.editBullet(newBullet);
+      }, 100);
+    }
+    
+    updateBulletsJson() {
+      const bullets = Array.from(this.bulletList.querySelectorAll('.bullet-text'))
+        .map(span => span.textContent.trim())
+        .filter(text => text && text !== 'New bullet point');
+      
+      this.finalBulletsJson.value = JSON.stringify(bullets);
+    }
+  }
+  
+  // Initialize bullet editor
+  document.addEventListener('DOMContentLoaded', () => {
+    new BulletEditor();
+    initializeSkillTags();
+  });
+
+  function initializeSkillTags() {
+    const skillTags = document.querySelectorAll('.skill-tag');
+    
+    skillTags.forEach(tag => {
+      const checkbox = tag.querySelector('.skill-checkbox-hidden');
+      
+      // Handle tag click to toggle
+      tag.addEventListener('click', (e) => {
+        e.preventDefault();
+        checkbox.checked = !checkbox.checked;
+      });
+    });
+  }
+  
+  function submitImprovement() {
+    const improvement = document.getElementById('improvement').value.trim();
+    
+    if (!improvement) {
+      alert('Please provide improvement details before continuing.');
+      return;
+    }
+    
+    // Create and submit form for improvement
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{{ url_for("improve") }}';
+    
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = 'improvement';
+    input.value = improvement;
+    
+    form.appendChild(input);
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  // To Present checkbox logic
+  const endDateInput = document.getElementById('end_date');
+  const toPresentCheckbox = document.getElementById('to_present');
+  const endDateHidden = document.getElementById('end_date_hidden');
+  if (toPresentCheckbox && endDateInput && endDateHidden) {
+    function toggleEndDate() {
+      if (toPresentCheckbox.checked) {
+        endDateInput.disabled = true;
+        endDateInput.value = '';
+        endDateHidden.value = 'present';
+      } else {
+        endDateInput.disabled = false;
+        endDateHidden.value = '';
+      }
+    }
+    toPresentCheckbox.addEventListener('change', toggleEndDate);
+    // On page load
+    toggleEndDate();
+  }
+  // Ensure hidden end_date is set before form submit
+  const finalReviewForm = document.getElementById('finalReviewForm');
+  if (finalReviewForm) {
+    finalReviewForm.addEventListener('submit', function() {
+      if (toPresentCheckbox && toPresentCheckbox.checked && endDateHidden) {
+        endDateHidden.value = 'present';
+        endDateInput.disabled = true;
+        endDateInput.value = '';
+      } else if (endDateInput && endDateHidden) {
+        endDateHidden.value = endDateInput.value;
+      }
+    });
+  }
+</script>
+{% endblock %}

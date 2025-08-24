@@ -1,0 +1,617 @@
+{% extends "layout.html" %}
+
+{% block title %}My Experiences{% endblock %}
+{% block page_title %}My Experiences{% endblock %}
+{% block content %}
+
+<section class="card">
+  <div class="flex justify-between items-center">
+    <h2 class="text-xl font-semibold">My Experiences</h2>
+    <a href="{{ url_for('start') }}" class="btn btn-primary">Add another experience</a>
+  </div>
+  <p class="text-sm text-gray-600 mt-2">All experiences you save will appear here. You can duplicate or delete items.</p>
+  <div class="text-right mt-3">
+    <a href="{{ url_for('full_resume') }}" class="btn btn-secondary">View Full Resume</a>
+  </div>
+</section>
+
+{% if not experiences or experiences|length == 0 %}
+  <section class="empty-state">
+    <div class="empty-content">
+      <h3 class="empty-title">No experiences yet</h3>
+      <p class="empty-description">Start building your professional story by adding your first experience.</p>
+      <a href="{{ url_for('start') }}" class="empty-action-btn">
+        Add your first experience
+      </a>
+    </div>
+  </section>
+{% else %}
+  {% if experiences %}
+  {% endif %}
+  <section class="experiences-grid">
+    {% for item in experiences %}
+      <div class="experience-card" data-card-id="{{ item.id }}">
+        <!-- Card Background Decoration -->
+        <div class="card-decoration"></div>
+        
+        <!-- Card Header -->
+        <div class="card-header">
+          <div class="title-section">
+            <h3 class="experience-title">{{ item.title }}</h3>
+            <div class="date-badge">
+              {% if item.start_date or item.end_date %}
+                <span>
+                  {{ item.start_date if item.start_date else 'N/A' }} – {{ item.end_date if item.end_date else 'N/A' }}
+                </span>
+              {% elif item.created_at %}
+                <span>{{ item.created_at[:10] }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        
+        <!-- Skills Preview -->
+        {% if item.skills and item.skills|length > 0 %}
+          <div class="skills-section">
+            <div class="skills-label">
+              <span>Skills</span>
+            </div>
+            <div class="skills-container">
+              {% for skill in item.skills[:4] %}
+                <span class="skill-pill">{{ skill }}</span>
+              {% endfor %}
+              {% if item.skills|length > 4 %}
+                <span class="skill-more">+{{ item.skills|length - 4 }}</span>
+              {% endif %}
+            </div>
+          </div>
+        {% endif %}
+        
+        <!-- See More Button -->
+        <button class="expand-btn" onclick="toggleExperience('{{ item.id }}')">
+          <span class="expand-text">View Details</span>
+          <span class="expand-arrow" id="arrow-{{ item.id }}">▼</span>
+        </button>
+        
+        <!-- Expandable Content -->
+        <div class="expandable-content" id="content-{{ item.id }}">
+          <div class="expanded-inner">
+            <!-- Achievements Section -->
+            {% set bullets = item.bullets or [] %}
+            {% if bullets|length > 0 %}
+              <div class="section">
+                <div class="section-header">
+                  <h4>Key Achievements</h4>
+                </div>
+                <ul class="achievements-list">
+                  {% for bullet in bullets %}
+                    <li class="achievement-item">
+                      <div class="achievement-bullet"></div>
+                      <span>{{ bullet }}</span>
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endif %}
+            
+            <!-- Complete Skills Section -->
+            {% if item.skills and item.skills|length > 0 %}
+              <div class="section">
+                <div class="section-header">
+                  <h4>All Skills</h4>
+                </div>
+                <div class="all-skills-container">
+                  {% for skill in item.skills %}
+                    <span class="skill-pill">{{ skill }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            {% endif %}
+            
+            <!-- Start & End Date Section -->
+            {% if item.start_date or item.end_date %}
+              <div class="section">
+                <div class="section-header">
+                  <h4>Start & End Date</h4>
+                </div>
+                <div class="date-content">
+                  <span class="date-label">Start:</span> <span class="date-value">{{ item.start_date or 'N/A' }}</span><br>
+                  <span class="date-label">End:</span> <span class="date-value">{{ item.end_date or 'N/A' }}</span>
+                </div>
+              </div>
+            {% endif %}
+            
+            <!-- Original Story Section -->
+            {% if item.experience_text %}
+              <div class="section">
+                <div class="section-header">
+                  <h4>Original Story</h4>
+                </div>
+                <div class="story-content">
+                  {{ item.experience_text }}
+                </div>
+              </div>
+            {% endif %}
+          </div>
+        </div>
+        
+        <!-- Action Buttons -->
+        <div class="action-buttons">
+          <form method="POST" action="{{ url_for('my_experiences_duplicate', item_id=item.id) }}">
+            <button type="submit" class="action-btn edit-btn">
+              Edit
+            </button>
+          </form>
+          <form method="POST" action="{{ url_for('my_experiences_delete', item_id=item.id) }}" onsubmit="return confirm('Delete this experience?');">
+            <button type="submit" class="action-btn delete-btn">
+              Delete
+            </button>
+          </form>
+        </div>
+      </div>
+    {% endfor %}
+  </section>
+{% endif %}
+
+<!-- Modern JavaScript for enhanced interactions -->
+<script>
+function toggleExperience(itemId) {
+  const content = document.getElementById('content-' + itemId);
+  const arrow = document.getElementById('arrow-' + itemId);
+  const button = event.currentTarget;
+  const card = button.closest('.experience-card');
+  
+  const isExpanded = content.classList.contains('expanded');
+  
+  // Collapse all others
+  document.querySelectorAll('.expandable-content.expanded').forEach(function(el) {
+    if (el !== content) {
+      el.style.maxHeight = '0px';
+      el.classList.remove('expanded');
+      const otherId = el.id.replace('content-', '');
+      const otherArrow = document.getElementById('arrow-' + otherId);
+      const otherCard = document.querySelector('.experience-card[data-card-id="' + otherId + '"]');
+      if (otherArrow) otherArrow.textContent = '▼';
+      if (otherCard) otherCard.classList.remove('card-expanded');
+      const otherBtn = document.querySelector('.expand-btn[onclick*="' + otherId + '"]');
+      if (otherBtn) otherBtn.querySelector('.expand-text').textContent = 'View Details';
+    }
+  });
+
+  if (!isExpanded) {
+    // Expand
+    content.classList.add('expanded');
+    arrow.textContent = '▲';
+    button.querySelector('.expand-text').textContent = 'Hide Details';
+    card.classList.add('card-expanded');
+    
+    // Smooth expand animation
+    content.style.maxHeight = content.scrollHeight + 'px';
+  } else {
+    // Collapse
+    content.style.maxHeight = '0px';
+    arrow.textContent = '▼';
+    button.querySelector('.expand-text').textContent = 'View Details';
+    card.classList.remove('card-expanded');
+    
+    setTimeout(() => {
+      content.classList.remove('expanded');
+    }, 300);
+  }
+}
+
+// Add intersection observer for animation on scroll
+document.addEventListener('DOMContentLoaded', function() {
+  const cards = document.querySelectorAll('.experience-card');
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.style.animationDelay = `${Array.from(cards).indexOf(entry.target) * 0.1}s`;
+        entry.target.classList.add('animate-in');
+      }
+    });
+  }, { threshold: 0.1 });
+  
+  cards.forEach(card => observer.observe(card));
+});
+</script>
+
+<!-- Modern CSS Design System -->
+<style>
+/* Color Variables */
+:root {
+  --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  --secondary-gradient: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  --success-gradient: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  --warning-gradient: linear-gradient(135deg, #f2994a 0%, #f2c94c 100%);
+  --danger-gradient: linear-gradient(135deg, #ff758c 0%, #ff7eb3 100%);
+  
+  --text-primary: #1a202c;
+  --text-secondary: #4a5568;
+  --text-tertiary: #718096;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f7fafc;
+  --bg-tertiary: #edf2f7;
+  --border-color: #e2e8f0;
+  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+/* Empty State Styling */
+.empty-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 20px;
+  margin: 2rem 0;
+}
+
+.empty-content {
+  text-align: center;
+  max-width: 400px;
+  padding: 2rem;
+}
+
+.empty-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+}
+
+.empty-description {
+  color: var(--text-secondary);
+  margin-bottom: 2rem;
+  line-height: 1.6;
+}
+
+.empty-action-btn {
+  display: inline-flex;
+  align-items: center;
+  background: var(--primary-gradient);
+  color: white;
+  padding: 12px 24px;
+  border-radius: 12px;
+  text-decoration: none;
+  font-weight: 600;
+  transition: all 0.3s ease;
+  box-shadow: var(--shadow-md);
+}
+
+.empty-action-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  text-decoration: none;
+  color: white;
+}
+
+/* Grid Layout */
+.experiences-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+  gap: 1.5rem;
+  margin: 2rem 0;
+}
+
+/* Experience Card Design */
+.experience-card {
+  background: var(--bg-primary);
+  border-radius: 20px;
+  padding: 1.5rem;
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-md);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(20px);
+}
+
+.experience-card.animate-in {
+  animation: cardSlideIn 0.6s ease-out forwards;
+}
+
+@keyframes cardSlideIn {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.experience-card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-xl);
+}
+
+.experience-card.card-expanded {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Card Decoration */
+.card-decoration {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--primary-gradient);
+  border-radius: 20px 20px 0 0;
+}
+
+/* Card Header */
+.card-header {
+  margin-bottom: 1.5rem;
+}
+
+.title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.experience-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.3;
+  margin: 0;
+  flex: 1;
+}
+
+.date-badge {
+  background: var(--bg-secondary);
+  padding: 0.5rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Skills Section */
+.skills-section {
+  margin-bottom: 1.5rem;
+}
+
+.skills-label {
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.skills-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.skill-pill {
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.skill-pill:hover {
+  transform: scale(1.05);
+}
+
+.skill-pill { 
+  background: #bfdbfe; 
+  color: #1e40af; 
+}
+
+.skill-more {
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  padding: 0.375rem 0.75rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Expand Button */
+.expand-btn {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-secondary);
+  border: 2px solid var(--border-color);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  cursor: pointer;
+  margin-bottom: 1rem;
+}
+
+.expand-btn:hover {
+  background: var(--primary-gradient);
+  color: white;
+  border-color: transparent;
+  transform: translateY(-1px);
+}
+
+.expand-arrow {
+  transition: all 0.3s ease;
+  font-size: 0.875rem;
+}
+
+/* Expandable Content */
+.expandable-content {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.expanded-inner {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.section {
+  margin-bottom: 1.5rem;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.section-header {
+  margin-bottom: 1rem;
+  color: var(--text-primary);
+}
+
+.section-header h4 {
+  font-weight: 700;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Achievements List */
+.achievements-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.achievement-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  padding: 0.75rem;
+  background: var(--bg-secondary);
+  border-radius: 10px;
+  transition: all 0.2s ease;
+}
+
+.achievement-item:hover {
+  background: #e6f3ff;
+  transform: translateX(4px);
+}
+
+.achievement-bullet {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary-gradient);
+  margin-top: 0.5rem;
+  flex-shrink: 0;
+}
+
+/* Story Content */
+.story-content {
+  background: linear-gradient(135deg, #ffeef8 0%, #f0f8ff 100%);
+  padding: 1.25rem;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+/* All Skills Container */
+.all-skills-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+}
+
+.action-btn {
+  padding: 0.625rem 1rem;
+  border-radius: 10px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+}
+
+.edit-btn {
+  background: #3b82f6;
+  color: white;
+}
+
+.edit-btn:hover {
+  background: #2563eb;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.delete-btn {
+  background: #dc2626;
+  color: white;
+}
+
+.delete-btn:hover {
+  background: #b91c1c;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.date-content {
+  font-size: 0.95rem;
+  color: #2563eb;
+  background: #f0f9ff;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid #bfdbfe;
+  display: inline-block;
+}
+.date-label {
+  font-weight: 600;
+  color: #1e40af;
+  margin-right: 0.5em;
+}
+.date-value {
+  color: #2563eb;
+}
+
+/* Responsive Design */
+@media (max-width: 640px) {
+  .experiences-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .experience-card {
+    padding: 1.25rem;
+  }
+  
+  .title-section {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+  }
+}
+</style>
+
+{% endblock %}
+
+

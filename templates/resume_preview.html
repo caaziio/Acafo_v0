@@ -1,0 +1,198 @@
+{% extends "layout.html" %}
+{% block title %}Resume Preview{% endblock %}
+{% block content %}
+
+  <div class="bg-white p-8 rounded-xl shadow-lg max-w-5xl mx-auto">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">📄 Resume Preview</h1>
+      <p class="text-gray-600">Review and refine your experience before saving</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <!-- Left Column: Experience Details -->
+      <div class="lg:col-span-2 space-y-6">
+        <!-- Experience Title and Story -->
+        <div class="bg-gray-50 rounded-lg p-6">
+          <h2 class="text-xl font-bold text-gray-900 mb-3">🏷️ {% if preview_title %}{{ preview_title.replace('**', '') }}{% else %}Experience Title{% endif %}</h2>
+          <div class="bg-white rounded-lg p-4 border border-gray-200">
+            <p class="text-gray-700 leading-relaxed">{% if preview_story %}{{ preview_story }}{% else %}No experience story available{% endif %}</p>
+          </div>
+        </div>
+
+        <!-- Resume Bullet Points -->
+        <div class="bg-blue-50 rounded-lg p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-xl font-bold text-gray-900">💼 Resume Bullet Points</h3>
+            <button 
+              id="copyBulletsBtn"
+              class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium">
+              📋 Copy Bullets
+            </button>
+          </div>
+          
+          <ul class="space-y-3">
+            {% if preview_bullets %}
+              {% if preview_bullets is string %}
+                {% for line in preview_bullets.split('\n') %}
+                  {% set clean_line = line.replace('**', '') %}
+                  {% if clean_line.strip() != '' %}
+                    <li class="flex items-start">
+                      <span class="text-blue-600 font-bold mr-3 mt-1">•</span>
+                      <span class="text-gray-800 leading-relaxed">{{ clean_line }}</span>
+                    </li>
+                  {% endif %}
+                {% endfor %}
+              {% else %}
+                {% for bullet in preview_bullets %}
+                  <li class="flex items-start">
+                    <span class="text-blue-600 font-bold mr-3 mt-1">•</span>
+                    <span class="text-gray-800 leading-relaxed">{{ bullet.replace('**', '') }}</span>
+                  </li>
+                {% endfor %}
+              {% endif %}
+            {% else %}
+              <li class="text-gray-500 italic">No bullet points available</li>
+            {% endif %}
+          </ul>
+          
+          <!-- Hidden textarea for copying -->
+          <textarea 
+            id="bulletsText" 
+            class="absolute left-[-9999px] opacity-0"
+            readonly
+          >{% if preview_bullets %}{% if preview_bullets is string %}{% for line in preview_bullets.split('\n') %}{% set clean_line = line.replace('**', '') %}{% if clean_line.strip() != '' %}{{ clean_line }}
+{% endif %}{% endfor %}{% else %}{% for bullet in preview_bullets %}{{ bullet.replace('**', '') }}
+{% endfor %}{% endif %}{% endif %}</textarea>
+        </div>
+
+        <!-- Skills Section -->
+        <div class="bg-green-50 rounded-lg p-6">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">🛠️ Skills Demonstrated</h3>
+          <div class="flex flex-wrap gap-2">
+            {% if preview_skills %}
+              {% if preview_skills is string %}
+                {% for skill in preview_skills.split('\n') if skill.strip() != '' %}
+                  <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {{ skill.strip().replace('-', '').strip() }}
+                  </span>
+                {% endfor %}
+              {% else %}
+                {% for skill in preview_skills %}
+                  <span class="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                    {{ skill.strip().replace('-', '').strip() }}
+                  </span>
+                {% endfor %}
+              {% endif %}
+            {% else %}
+              <span class="text-gray-500 italic">No skills identified</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Suggestions Box -->
+        {% if suggestions %}
+        <div class="bg-yellow-50 rounded-lg p-6 border border-yellow-200">
+          <h3 class="text-xl font-bold text-gray-900 mb-4">💡 Suggestions to Improve</h3>
+          <ul class="space-y-2">
+            {% if suggestions is string %}
+              {% for tip in suggestions.split('\n') if tip.strip() != '' %}
+                <li class="flex items-start">
+                  <span class="text-yellow-600 font-bold mr-3 mt-1">💭</span>
+                  <span class="text-gray-700">{{ tip.strip() }}</span>
+                </li>
+              {% endfor %}
+            {% else %}
+              {% for tip in suggestions %}
+                <li class="flex items-start">
+                  <span class="text-yellow-600 font-bold mr-3 mt-1">💭</span>
+                  <span class="text-gray-700">{{ tip.strip() }}</span>
+                </li>
+              {% endfor %}
+            {% endif %}
+          </ul>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- Right Column: Actions and Improvements -->
+      <div class="space-y-6">
+        <!-- Improvement Form -->
+        <div class="bg-white border border-gray-200 rounded-lg p-6">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">✍️ Add Improvements</h3>
+          <form method="POST" class="space-y-4">
+            <div>
+              <label for="improvement" class="block text-sm font-medium text-gray-700 mb-2">
+                Enhance your experience (optional):
+              </label>
+              <textarea 
+                id="improvement" 
+                name="improvement" 
+                rows="4" 
+                placeholder="Add more details, context, or specific outcomes..."
+                class="w-full p-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none">
+              </textarea>
+            </div>
+            
+            <button type="submit" class="w-full bg-green-600 text-white px-4 py-3 rounded-lg hover:bg-green-700 transition-colors font-medium">
+              🔁 Regenerate Resume
+            </button>
+          </form>
+        </div>
+
+        <!-- Primary Actions -->
+        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-lg p-6 border border-blue-200">
+          <h3 class="text-lg font-bold text-gray-900 mb-4">🚀 Next Steps</h3>
+          <div class="space-y-3">
+            <a href="/experience_complete" class="w-full bg-gradient-to-r from-blue-600 to-blue-800 text-white px-4 py-3 rounded-lg hover:from-blue-700 hover:to-blue-900 transition-all duration-300 font-bold text-center block transform hover:scale-[1.02] shadow-lg">
+              💾 Save This Experience
+            </a>
+            
+            <a href="{{ url_for('experience') }}" class="w-full bg-white text-blue-600 px-4 py-3 rounded-lg hover:bg-gray-50 transition-colors font-medium text-center block border border-blue-200">
+              ➕ Add Another Experience
+            </a>
+            
+            <a href="/full_resume" class="w-full bg-gray-100 text-gray-700 px-4 py-3 rounded-lg hover:bg-gray-200 transition-colors font-medium text-center block">
+              📄 Generate Full Resume
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Copy bullets functionality
+    const copyBulletsBtn = document.getElementById('copyBulletsBtn');
+    const bulletsText = document.getElementById('bulletsText');
+    
+    copyBulletsBtn.addEventListener('click', async function() {
+      try {
+        await navigator.clipboard.writeText(bulletsText.value);
+        
+        // Visual feedback
+        const originalText = copyBulletsBtn.textContent;
+        copyBulletsBtn.textContent = '✅ Copied!';
+        copyBulletsBtn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+        copyBulletsBtn.classList.add('bg-green-600');
+        
+        setTimeout(() => {
+          copyBulletsBtn.textContent = originalText;
+          copyBulletsBtn.classList.remove('bg-green-600');
+          copyBulletsBtn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+        }, 2000);
+        
+      } catch (err) {
+        // Fallback for older browsers
+        bulletsText.select();
+        document.execCommand('copy');
+        
+        // Visual feedback
+        copyBulletsBtn.textContent = '✅ Copied!';
+        setTimeout(() => {
+          copyBulletsBtn.textContent = '📋 Copy Bullets';
+        }, 2000);
+      }
+    });
+  </script>
+
+{% endblock %}
