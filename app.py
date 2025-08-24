@@ -32,13 +32,6 @@ if settings.IS_PRODUCTION:
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_DOMAIN'] = None  # Set if you have a specific domain
-    
-    # Force HTTPS redirects in production
-    @app.before_request
-    def force_https():
-        if not request.is_secure and request.headers.get('X-Forwarded-Proto') != 'https':
-            url = request.url.replace('http://', 'https://', 1)
-            return redirect(url, code=301)
 else:
     app.config['SESSION_COOKIE_SECURE'] = False  # Allow HTTP in development
     app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -63,8 +56,15 @@ limiter = Limiter(
     default_limits=[settings.RATE_LIMIT_DEFAULT]
 )
 
-# Initialize AI client
-ai_client = AIClient()
+# Initialize AI client lazily to avoid import-time errors
+ai_client = None
+
+def get_ai_client():
+    """Get or create the AI client instance."""
+    global ai_client
+    if ai_client is None:
+        ai_client = AIClient()
+    return ai_client
 
 # Enhanced authentication decorator
 def login_required(f):
@@ -117,6 +117,12 @@ def before_request():
     """Set request_id for tracking and logging."""
     g.request_id = str(uuid.uuid4())
     g.start_time = time.time()
+    
+    # Force HTTPS redirects in production
+    if settings.IS_PRODUCTION:
+        if not request.is_secure and request.headers.get('X-Forwarded-Proto') != 'https':
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=301)
 
 def log_ai_call(method_name, experience_type, text_length, text_hash, elapsed_ms, success=True, error=None):
     """Log AI call details for monitoring and debugging."""
@@ -293,7 +299,7 @@ def api_experience_init():
         # Process with AI
         start_time = time.time()
         try:
-            result = ai_client.generate_initial(experience_type, experience_text)
+            result = get_ai_client().generate_initial(experience_type, experience_text)
             
             # Store in session under current_experience key
             session['current_experience'] = {
@@ -419,10 +425,7 @@ def api_transcribe():
     except Exception as e:
         return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
-@app.route("/")
-def index():
-    """Main entry point - redirect to dashboard."""
-    return redirect(url_for('dashboard'))
+# This route is now handled by the comprehensive index function below
 
 # Authentication routes
 @app.route("/login")
@@ -703,7 +706,7 @@ def finalize():
     try:
         # Run final refinement
         start_time = time.time()
-        result = ai_client.refine_bullets(current_experience['text'], current_experience['answers'])
+        result = get_ai_client().refine_bullets(current_experience['text'], current_experience['answers'])
         elapsed_ms = int((time.time() - start_time) * 1000)
         
         # Validate and process bullets
@@ -777,7 +780,7 @@ def improve():
         
         # Regenerate using AI
         start_time = time.time()
-        result = ai_client.refine_bullets(full_experience, current_experience['answers'])
+        result = get_ai_client().refine_bullets(full_experience, current_experience['answers'])
         elapsed_ms = int((time.time() - start_time) * 1000)
         
         # Validate and process bullets
@@ -1062,7 +1065,7 @@ def resume_preview():
 
         try:
             # Use AI client for bullet refinement
-            updated_bullets = ai_client.refine_bullets(full_experience, answers)
+            updated_bullets = get_ai_client().refine_bullets(full_experience, answers)
 
             # ✅ Only update if there's improvement text
             if improvement:
@@ -1125,7 +1128,7 @@ def final_resume():
 
     try:
         # Use AI client for final bullet refinement
-        updated_bullets = ai_client.refine_bullets(experience, answers)
+        updated_bullets = get_ai_client().refine_bullets(experience, answers)
 
         # Parse the response to extract suggestions
         # Note: This is a simplified approach - in production you might want a more structured response
