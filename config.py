@@ -7,6 +7,10 @@ load_dotenv()
 class Settings:
     """Centralized configuration settings for the Flask resume builder app."""
     
+    # Environment
+    ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+    IS_PRODUCTION = ENVIRONMENT == "production"
+    
     # Flask app settings
     APP_SECRET_KEY = os.getenv("APP_SECRET_KEY", "dev-secret-key-change-in-production")
     SESSION_TYPE = os.getenv("SESSION_TYPE", "filesystem")
@@ -14,6 +18,10 @@ class Settings:
     # Supabase settings
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
+    SUPABASE_SERVICE_ROLE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY")  # Add this for production
+    
+    # Site URL for redirects (production vs development)
+    SITE_URL = os.getenv("SITE_URL", "http://localhost:3000")
     
     # OpenAI API settings
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -36,6 +44,12 @@ class Settings:
     def validate(cls):
         """Validate that required settings are present."""
         required_settings = ["OPENAI_API_KEY", "SUPABASE_URL", "SUPABASE_ANON_KEY"]
+        
+        # Add service role key requirement for production
+        if cls.IS_PRODUCTION:
+            required_settings.append("SUPABASE_SERVICE_ROLE_KEY")
+            required_settings.append("SITE_URL")
+        
         missing = []
         
         for setting in required_settings:

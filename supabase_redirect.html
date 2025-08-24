@@ -65,8 +65,9 @@
                 const tokenType = params.get('token_type');
                 
                 if (accessToken && tokenType === 'bearer') {
-                    // Redirect to Flask app with token as query parameter
-                    const callbackUrl = 'http://localhost:3000/auth/callback';
+                    // Get the current domain dynamically
+                    const currentDomain = window.location.origin;
+                    const callbackUrl = `${currentDomain}/auth/callback`;
                     const finalUrl = `${callbackUrl}?access_token=${encodeURIComponent(accessToken)}&token_type=${encodeURIComponent(tokenType)}`;
                     
                     // Small delay to show the loading state
@@ -76,13 +77,13 @@
                 } else {
                     // No valid token found, redirect to login
                     setTimeout(() => {
-                        window.location.href = 'http://localhost:3000/login';
+                        window.location.href = `${window.location.origin}/login`;
                     }, 1000);
                 }
             } else {
                 // No hash fragment, redirect to login
                 setTimeout(() => {
-                    window.location.href = 'http://localhost:3000/login';
+                    window.location.href = `${window.location.origin}/login`;
                 }, 1000);
             }
         })();

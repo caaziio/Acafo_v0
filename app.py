@@ -23,11 +23,19 @@ app.secret_key = settings.APP_SECRET_KEY
 # Configure session type
 app.config['SESSION_TYPE'] = settings.SESSION_TYPE
 
-# Configure persistent sessions
+# Configure persistent sessions with production security
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=30)  # 30 days
-app.config['SESSION_COOKIE_SECURE'] = False  # Set to True in production with HTTPS
-app.config['SESSION_COOKIE_HTTPONLY'] = True
-app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+
+# Production security settings
+if settings.IS_PRODUCTION:
+    app.config['SESSION_COOKIE_SECURE'] = True  # HTTPS only
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+    app.config['SESSION_COOKIE_DOMAIN'] = None  # Set if you have a specific domain
+else:
+    app.config['SESSION_COOKIE_SECURE'] = False  # Allow HTTP in development
+    app.config['SESSION_COOKIE_HTTPONLY'] = True
+    app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 
 
@@ -51,12 +59,25 @@ limiter = Limiter(
 # Initialize AI client
 ai_client = AIClient()
 
-# Authentication decorator
+# Enhanced authentication decorator
 def login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        # Check if user is logged in
         if not session.get('user_id'):
             return redirect(url_for('login'))
+        
+        # In production, validate the access token with Supabase
+        if settings.IS_PRODUCTION and session.get('access_token'):
+            supabase = get_supabase_client()
+            user = supabase.auth_get_user(session['access_token'])
+            
+            if not user:
+                # Token is invalid, clear session and redirect to login
+                session.clear()
+                flash("Your session has expired. Please sign in again.", "error")
+                return redirect(url_for('login'))
+        
         return f(*args, **kwargs)
     return decorated_function
 
@@ -423,8 +444,8 @@ def auth_google():
     """Initiate Google OAuth sign-in."""
     try:
         supabase = get_supabase_client()
-        # Use port 3000 since Supabase redirects there, then our handler redirects to 3000
-        redirect_url = "http://localhost:3000/supabase_redirect.html"
+        # Use dynamic redirect URL based on environment
+        redirect_url = f"{settings.SITE_URL}/supabase_redirect.html"
         result = supabase.auth_sign_in_with_oauth("google", redirect_url)
         
         if result["success"]:
@@ -451,8 +472,8 @@ def auth_magic_link():
         session['remember_me'] = remember_me
         
         supabase = get_supabase_client()
-        # Use port 3000 since Supabase redirects there, then our handler redirects to 3000
-        redirect_url = "http://localhost:3000/supabase_redirect.html"
+        # Use dynamic redirect URL based on environment
+        redirect_url = f"{settings.SITE_URL}/supabase_redirect.html"
         result = supabase.auth_sign_in_with_otp(email, redirect_url)
         
         if result["success"]:
