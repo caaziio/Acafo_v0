@@ -32,6 +32,13 @@ if settings.IS_PRODUCTION:
     app.config['SESSION_COOKIE_HTTPONLY'] = True
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['SESSION_COOKIE_DOMAIN'] = None  # Set if you have a specific domain
+    
+    # Force HTTPS redirects in production
+    @app.before_request
+    def force_https():
+        if not request.is_secure and request.headers.get('X-Forwarded-Proto') != 'https':
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=301)
 else:
     app.config['SESSION_COOKIE_SECURE'] = False  # Allow HTTP in development
     app.config['SESSION_COOKIE_HTTPONLY'] = True
@@ -472,8 +479,8 @@ def auth_magic_link():
         session['remember_me'] = remember_me
         
         supabase = get_supabase_client()
-        # Use the magic link verification route directly
-        redirect_url = f"{settings.SITE_URL}/auth/magic-link-verify"
+        # Use the root route as redirect URL since Supabase will redirect there after verification
+        redirect_url = f"{settings.SITE_URL}/"
         result = supabase.auth_sign_in_with_otp(email, redirect_url)
         
         if result["success"]:
@@ -502,37 +509,76 @@ def magic_link_verify():
         
         print(f"Magic link verification - Token: {token}, Email: {email}")
         
-        if not token:
-            flash("Invalid magic link: No token found.", "error")
-            return redirect(url_for('login'))
-        
-        # Verify the token with Supabase
-        supabase = get_supabase_client()
-        
-        # Try to get user info directly from token
-        user = supabase.auth_get_user(token)
-        
-        if user:
-            # Store user info in session
-            session['user_id'] = user.get('id') or user.get('sub')
-            session['user_email'] = user.get('email')
-            session['access_token'] = token
+        # If we have a token, try to verify it
+        if token:
+            # Verify the token with Supabase
+            supabase = get_supabase_client()
             
-            # Set persistent session
-            remember_me = session.pop('remember_me', True)
-            session.permanent = remember_me
+            # Try to get user info directly from token
+            user = supabase.auth_get_user(token)
             
-            print(f"Magic link user authenticated: {session['user_id']}")
-            flash("Successfully signed in with magic link!", "success")
-            return redirect(url_for('dashboard'))
+            if user:
+                # Store user info in session
+                session['user_id'] = user.get('id') or user.get('sub')
+                session['user_email'] = user.get('email')
+                session['access_token'] = token
+                
+                # Set persistent session
+                remember_me = session.pop('remember_me', True)
+                session.permanent = remember_me
+                
+                print(f"Magic link user authenticated: {session['user_id']}")
+                flash("Successfully signed in with magic link!", "success")
+                return redirect(url_for('dashboard'))
+            else:
+                flash("Magic link verification failed. Please try again.", "error")
+                return redirect(url_for('login'))
         else:
-            flash("Magic link verification failed. Please try again.", "error")
+            # No token found, this might be a redirect from Supabase verify endpoint
+            # Check if we have any other authentication parameters
+            print("No token found in magic link verification")
+            flash("Invalid magic link format. Please request a new one.", "error")
             return redirect(url_for('login'))
             
     except Exception as e:
         print(f"Magic link verification error: {str(e)}")
         flash(f"Authentication error: {str(e)}", "error")
         return redirect(url_for('login'))
+
+@app.route("/")
+@app.route("/index")
+def index():
+    """Handle the root route and redirect to appropriate page."""
+    # Check if user is already logged in
+    if session.get('user_id'):
+        return redirect(url_for('dashboard'))
+    
+    # Check if there's a magic link token in the URL (from Supabase redirect)
+    token = request.args.get('token') or request.args.get('access_token')
+    if token:
+        print(f"Found token in root route: {token}")
+        # Try to authenticate the user
+        try:
+            supabase = get_supabase_client()
+            user = supabase.auth_get_user(token)
+            
+            if user:
+                # Store user info in session
+                session['user_id'] = user.get('id') or user.get('sub')
+                session['user_email'] = user.get('email')
+                session['access_token'] = token
+                
+                # Set persistent session
+                session.permanent = True
+                
+                print(f"User authenticated via root route: {session['user_id']}")
+                flash("Successfully signed in!", "success")
+                return redirect(url_for('dashboard'))
+        except Exception as e:
+            print(f"Authentication error in root route: {str(e)}")
+    
+    # If no token or authentication failed, show the start page
+    return render_template("start.html")
 
 @app.route("/auth/callback")
 def auth_callback():
