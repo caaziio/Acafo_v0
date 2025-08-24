@@ -55,34 +55,48 @@
     </div>
 
     <script>
-        // Extract token from URL fragment and redirect to Flask app
+        // Handle both OAuth and magic link authentication
         (function() {
             const hash = window.location.hash;
+            const urlParams = new URLSearchParams(window.location.search);
+            
+            console.log('Hash fragment:', hash);
+            console.log('URL params:', Object.fromEntries(urlParams));
+            
+            let accessToken = null;
+            let tokenType = 'bearer';
+            
+            // Check hash fragment first (OAuth flow)
             if (hash) {
-                // Parse the hash fragment
-                const params = new URLSearchParams(hash.substring(1));
-                const accessToken = params.get('access_token');
-                const tokenType = params.get('token_type');
+                const hashParams = new URLSearchParams(hash.substring(1));
+                accessToken = hashParams.get('access_token');
+                tokenType = hashParams.get('token_type') || 'bearer';
+                console.log('Token from hash:', accessToken);
+            }
+            
+            // Check URL parameters (magic link flow)
+            if (!accessToken) {
+                accessToken = urlParams.get('access_token') || urlParams.get('token');
+                console.log('Token from URL params:', accessToken);
+            }
+            
+            if (accessToken) {
+                // Get the current domain dynamically
+                const currentDomain = window.location.origin;
+                const callbackUrl = `${currentDomain}/auth/callback`;
+                const finalUrl = `${callbackUrl}?access_token=${encodeURIComponent(accessToken)}&token_type=${encodeURIComponent(tokenType)}`;
                 
-                if (accessToken && tokenType === 'bearer') {
-                    // Redirect to Flask app with token as query parameter
-                    const callbackUrl = 'http://localhost:3000/auth/callback';
-                    const finalUrl = `${callbackUrl}?access_token=${encodeURIComponent(accessToken)}&token_type=${encodeURIComponent(tokenType)}`;
-                    
-                    // Small delay to show the loading state
-                    setTimeout(() => {
-                        window.location.href = finalUrl;
-                    }, 1000);
-                } else {
-                    // No valid token found, redirect to login
-                    setTimeout(() => {
-                        window.location.href = 'http://localhost:3000/login';
-                    }, 1000);
-                }
-            } else {
-                // No hash fragment, redirect to login
+                console.log('Redirecting to:', finalUrl);
+                
+                // Small delay to show the loading state
                 setTimeout(() => {
-                    window.location.href = 'http://localhost:3000/login';
+                    window.location.href = finalUrl;
+                }, 1000);
+            } else {
+                console.log('No token found, redirecting to login');
+                // No valid token found, redirect to login
+                setTimeout(() => {
+                    window.location.href = `${window.location.origin}/login`;
                 }, 1000);
             }
         })();

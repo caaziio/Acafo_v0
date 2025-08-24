@@ -423,8 +423,8 @@ def auth_google():
     """Initiate Google OAuth sign-in."""
     try:
         supabase = get_supabase_client()
-        # Use port 3000 since Supabase redirects there, then our handler redirects to 3000
-        redirect_url = "http://localhost:3000/supabase_redirect.html"
+        # Use dynamic redirect URL based on environment
+        redirect_url = f"{settings.SITE_URL}/supabase_redirect.html"
         result = supabase.auth_sign_in_with_oauth("google", redirect_url)
         
         if result["success"]:
@@ -451,8 +451,8 @@ def auth_magic_link():
         session['remember_me'] = remember_me
         
         supabase = get_supabase_client()
-        # Use port 3000 since Supabase redirects there, then our handler redirects to 3000
-        redirect_url = "http://localhost:3000/supabase_redirect.html"
+        # Use supabase_redirect.html to handle the magic link authentication flow
+        redirect_url = f"{settings.SITE_URL}/supabase_redirect.html"
         result = supabase.auth_sign_in_with_otp(email, redirect_url)
         
         if result["success"]:
@@ -475,17 +475,25 @@ def supabase_redirect():
 def auth_callback():
     """Handle authentication callback from Supabase."""
     try:
-        # Get the access token from the URL fragment or query params
+        # Debug logging
+        print(f"Auth callback called with args: {dict(request.args)}")
+        print(f"Request URL: {request.url}")
+        
+        # Get the access token from the URL query params
         access_token = request.args.get('access_token') or request.args.get('token')
         
-        # If no token in query params, check if this is a fragment-based redirect
+        print(f"Extracted access_token: {access_token}")
+        
         if not access_token:
-            # This might be a fragment-based redirect, redirect to a JavaScript handler
-            return render_template("auth_callback.html")
+            print("No token found in auth callback")
+            flash("Authentication failed: No token provided.", "error")
+            return redirect(url_for('login'))
         
         # Get user information from Supabase
         supabase = get_supabase_client()
         user = supabase.auth_get_user(access_token)
+        
+        print(f"Supabase user response: {user}")
         
         if user:
             # Store user info in session
@@ -494,17 +502,19 @@ def auth_callback():
             session['access_token'] = access_token
             
             # Check if user wants persistent session (from magic link form)
-            # For Google OAuth, default to persistent since it's more secure
             remember_me = session.pop('remember_me', True)
             session.permanent = remember_me
             
+            print(f"User authenticated successfully: {session['user_id']}")
             flash("Successfully signed in!", "success")
             return redirect(url_for('dashboard'))
         else:
+            print("Failed to get user from Supabase")
             flash("Authentication failed: Could not verify user.", "error")
             return redirect(url_for('login'))
             
     except Exception as e:
+        print(f"Auth callback error: {str(e)}")
         flash(f"Authentication error: {str(e)}", "error")
         return redirect(url_for('login'))
 

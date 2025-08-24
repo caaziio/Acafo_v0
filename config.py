@@ -15,6 +15,9 @@ class Settings:
     SUPABASE_URL = os.getenv("SUPABASE_URL")
     SUPABASE_ANON_KEY = os.getenv("SUPABASE_ANON_KEY")
     
+    # Site URL for redirects (production vs development)
+    SITE_URL = os.getenv("SITE_URL", "http://localhost:3000")
+    
     # OpenAI API settings
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
