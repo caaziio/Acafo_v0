@@ -451,8 +451,8 @@ def auth_magic_link():
         session['remember_me'] = remember_me
         
         supabase = get_supabase_client()
-        # Use supabase_redirect.html to handle the magic link authentication flow
-        redirect_url = f"{settings.SITE_URL}/supabase_redirect.html"
+        # Use login page as redirect URL since Supabase is redirecting there
+        redirect_url = f"{settings.SITE_URL}/login"
         result = supabase.auth_sign_in_with_otp(email, redirect_url)
         
         if result["success"]:
